@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.21.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script type="text/javascript">
+    AWS.config.update({accessKeyId: 'SUPPORTAKID-CHANGEME', secretAccessKey: 'SUPPORTSECRET-CHANGEME'});
+    AWS.config.region = 'REGION-CHANGEME';
+
+//   DONT CHANGE THE COMMENTS BELOW - THESE ARE SO YOU CAN CHANGE THE VALUES BACK LATER
+//   AWS.config.update({accessKeyId: 'SUPPORTAKID-CHANGEME', secretAccessKey: 'SUPPORTSECRET-CHANGEME'});
+//   AWS.config.region = 'REGION-CHANGEME';
+
+  </script>
+  <head>
+    <link href='http://fonts.googleapis.com/css?family=Playfair+Display' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
+    <style>
+      h1 {font: 400 60px/1.5 'Playfair Display', Georgia, serif;}
+      p {font: 400 16px/1.6 'Muli', Verdana, Helvetica, sans-serif;}
+    </style>
+  </head>
+  <body>
+    <p id="title">
+    <h1>Cody's Development LLC - Provisioning POC</h1>
+    </p>
+    <p id="buttonsnboxes">
+      <script>
+        function provisionStack(envtype, appversion) {
+
+          
+          var cloudformation = new AWS.CloudFormation();
+          var s1 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s2 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s3 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s4 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s5 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s6 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s7 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var s8 = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+          var uuid = s1+s2+'-'+s3+'-'+s4+'-'+s5+'-'+s6+s7+s8
+          var stackname = "CDLLC" + uuid
+          
+          var param = {
+            StackName: stackname,
+            Parameters: [
+              {ParameterKey: 'ENVIRONMENT', ParameterValue: envtype, UsePreviousValue: false},
+              {ParameterKey: 'APPVERSION', ParameterValue: appversion, UsePreviousValue: false}
+            ],
+            OnFailure: 'DO_NOTHING',
+            TemplateURL: 'https://RESOURCEBUCKET-CHANGEME/wp.yaml'
+            // CONT CHANGE THE VALUE BELOW - THIS IS SO YOU CAN RETURN THE PLACEHOLDER LATER
+            //TemplateURL: 'https://RESOURCEBUCKET-CHANGEME/wp.yaml'   
+          };
+          console.log(param)
+          cloudformation.createStack(param, function(err,data){
+            if (err) {
+              console.log(err, err.stack); // an error occurred
+              document.getElementById("results").innerHTML = "Error Occured.. Permissions ??";
+            } else {
+              listStacks()
+            }
+          });
+        }
+      </script>
+      <script>
+        function listStacks() {
+
+          var cloudformation = new AWS.CloudFormation();
+          var param ={
+            StackStatusFilter: [
+              'CREATE_IN_PROGRESS', 'CREATE_FAILED', 'CREATE_COMPLETE', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_FAILED',
+              'ROLLBACK_COMPLETE', 'DELETE_IN_PROGRESS', 'DELETE_FAILED', 'UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+              'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_IN_PROGRESS', 'UPDATE_ROLLBACK_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+              'UPDATE_ROLLBACK_COMPLETE', 'REVIEW_IN_PROGRESS'
+            ]
+          };
+          var stacks = cloudformation.listStacks(param, function(err, data) {
+            if (err) document.getElementById("results").innerHTML = "Error Occured.. Permissions ??";
+            else {
+
+              console.log(data)
+              var html = "<table border=\"1\"><tr><td>#</td><td>StackName</td><td>Creation Time</td><td>STATUS</td><td>Delete</td></tr>"
+              jQuery.each(data.StackSummaries, function(index,obj) {
+                if (obj.StackName.startsWith("CDLLC")) {
+                  html+= ('<tr><td>'+index+'</td><td>'+obj.StackName+'</td><td>'+obj.CreationTime+'</td><td>'+obj.StackStatus+'</td><td><button onclick=\"deleteStack(\''+obj.StackName+'\')\">DELETE</button></td></tr>')
+                }
+              
+              })
+              html += "</table>"
+              jQuery("#results").html(html)
+            }
+          })
+        }
+      </script>
+      <script>
+        function deleteStack(stackname) {
+          var cloudformation = new AWS.CloudFormation();
+          var param = {
+            StackName: stackname
+          };
+          cloudformation.deleteStack(param, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else     {
+              console.log(data)
+              listStacks()
+            }
+          });
+        }
+      </script>
+      <script>
+        function listApps() {
+          // list apps available in app bucket and update provisioning table
+          var cloudformation = new AWS.CloudFormation();
+          var s3 = new AWS.S3();
+          var params = {};
+          var params2 = {};
+          cloudformation.listExports(params, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else     {
+              console.log(data);           // successful - debug to console
+              var appbucketname=''
+              arr=data.Exports
+              for (var i=0, iLen=arr.length; i<iLen; i++) {
+                if (arr[i].Name == 'sharedinf-appbucketname') appbucketname=arr[i].Value;
+              }
+              console.log(appbucketname)
+              var appversions = []
+              var params2 = {Bucket: appbucketname, MaxKeys: '50'}
+              s3.listObjectsV2(params2, function(err, data){
+                console.log(data)
+                arr=data.Contents
+                for (var i=0, iLen=arr.length; i<iLen; i++) {
+                  if (arr[i].Key.startsWith("App")) {
+                    appversions.push(arr[i].Key.split(".")[0].split("App")[1])
+                  }
+                }
+                var html = "<table border=\"1\"><tr><td>Version</td><td>Deploy</td></tr>"
+
+                for (var i=0, iLen=appversions.length; i<iLen; i++){
+                   html += "<tr>"
+                   html += "<td>"
+                   html += appversions[i]
+                   html += "</td>"
+                   html += "<td>"
+                   html += "<button onclick=\"provisionStack('DEV','" + appversions[i] + "')\">DEV</button>"
+                   html += "<button onclick=\"provisionStack('TEST','" + appversions[i] + "')\">TEST</button>"
+                   html += "<button onclick=\"provisionStack('PROD','" + appversions[i] + "')\">PROD</button>"
+                   html += "<button onclick=\"provisionStack('PRESALES','" + appversions[i] + "')\">PRESALES</button>"                                     
+                   html += "</td>"
+                   html += "</tr>"
+                }
+
+                html += "</table>"
+                console.log(html)
+                jQuery("#provarea").html(html)
+              })
+
+
+            }
+          });
+          // update list of stacks
+          listStacks()
+        }
+      </script>
+
+    <button onclick="listStacks()">List Environments</button>
+
+    </p>
+    <p id="results"> 
+    </p>
+    <p id="provarea">
+    </p>
+  </body>
+</html>
+<script>listStacks()</script>
+<script>listApps()</script>

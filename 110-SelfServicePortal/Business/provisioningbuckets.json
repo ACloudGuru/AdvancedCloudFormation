@@ -1,0 +1,41 @@
+{
+  "Resources" : {
+    "S3Bucket" : {
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "AccessControl" : "PublicRead",
+        "WebsiteConfiguration" : {
+          "ErrorDocument" : "index.html",
+          "IndexDocument" : "index.html"
+        }
+      }
+    },
+    "S3BucketPolicy" : {
+      "Type" : "AWS::S3::BucketPolicy",
+      "Properties" : {
+        "Bucket" : {"Ref" : "S3Bucket"},
+        "PolicyDocument" : {
+          "Statement" : [
+            {
+              "Sid" : "ABC123",
+              "Action" : [
+                "s3:GetObject"
+              ],
+              "Effect" : "Allow",
+              "Resource" : {"Fn::Join" : ["", ["arn:aws:s3:::", {"Ref" : "S3Bucket"}, "/*"]]},
+              "Principal" : {
+                "AWS" : [ "*" ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "Outputs" : {
+    "federationHTML" : {
+      "Description" : "HTML URL",
+      "Value" : {"Fn::Join" : ["", [{"Fn::GetAtt" : ["S3Bucket", "WebsiteURL"]}, "/federationdemo.html"] ]}
+    }
+  }
+}

@@ -1,0 +1,67 @@
+Resources:
+  iamuser:
+    Type: "AWS::IAM::User"
+    Properties:
+      UserName: whicustomer
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/ReadOnlyAccess"
+      LoginProfile:
+        Password: "P@55w0rd"
+        PasswordResetRequired: false
+  iamkeys:
+    DependsOn: iamuser
+    Type: "AWS::IAM::AccessKey"
+    Properties:
+      UserName: whicustomer
+  iamrole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": "authenticated"
+            Principal:
+              Federated:
+                - "cognito-identity.amazonaws.com"
+      Path: "/"
+      "Policies":
+        -
+          PolicyName: main
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "cloudformation:CreateStack"
+                  - "cloudformation:UpdateStack"
+                  - "cloudformation:DeleteStack"
+                  - "cloudformation:CreateUploadBucket"
+                  - "cloudformation:DescribeStacks"
+                  - "cloudformation:DescribeStackEvents"
+                  - "cloudformation:GetTemplateSummary"
+                  - "cloudformation:ListStacks"
+                  - "cloudformation:ListStackResources"
+                  - "s3:CreateBucket"
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "mobileanalytics:PutEvent"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*" 
+Outputs:
+  customerakid:
+    Description: Customer Access Key ID
+    Value: !Ref iamkeys
+  customersecretkey:
+    Description: Customer Secret Access Key
+    Value: !GetAtt iamkeys.SecretAccessKey
+  customerrole:
+    Description: Customer Role arn
+    Value: !GetAtt iamrole.Arn

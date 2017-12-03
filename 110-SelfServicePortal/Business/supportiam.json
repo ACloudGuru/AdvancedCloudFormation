@@ -1,0 +1,34 @@
+{
+    "Resources" : {
+        "iamuser" : {
+            "Type": "AWS::IAM::User",
+            "Properties" : {
+                "UserName" : "whisupport",
+                "ManagedPolicyArns" : [
+                    "arn:aws:iam::aws:policy/AdministratorAccess"
+                ],
+                "LoginProfile" : {
+                    "Password" : "P@55w0rd",
+                    "PasswordResetRequired" : "false"
+                }
+            }
+        },
+        "iamkeys" : {
+            "DependsOn" : "iamuser",
+            "Type" : "AWS::IAM::AccessKey",
+            "Properties" : {
+                "UserName" : "whisupport"
+            }
+        }
+    },
+    "Outputs" : {
+        "adminakid" : {
+            "Description" : "Support Access Key ID",
+            "Value" : {"Ref" : "iamkeys"}
+        },
+        "adminsecretkey" : {
+            "Description" : "Support Secret Access Key",
+            "Value" : {"Fn::GetAtt" : ["iamkeys", "SecretAccessKey"]}
+        }
+    }
+}

@@ -1,0 +1,32 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "Stmt1478055099000",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:CreateUploadBucket",
+                "cloudformation:GetTemplateSummary",
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack",
+                "cloudformation:DescribeStacks",
+                "cloudformation:UpdateStack",
+                "cloudformation:ListStacks",
+                "cloudformation:ListStackResources",
+                "cloudformation:DescribeStackEvents",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:GetTemplate",
+                "cloudformation:GetStackPolicy",
+                "cloudformation:ListChangeSets",
+                "cloudformation:DescribeChangeSet",
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:CreateBucket",
+                "iam:ListRoles"
+            ],
+            "Resource": [
+                "*"
+            ]
+        }
+    ]
+}

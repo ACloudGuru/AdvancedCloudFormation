@@ -1,0 +1,387 @@
+{
+    "Metadata": {
+        "AWS::CloudFormation::Interface" : {
+            "ParameterGroups" : [
+                {
+                    "Label" : {
+                        "default" : "App Environment Configuration"
+                    },
+                    "Parameters" : [
+                        "ENVIRONMENT",
+                        "APPVERSION",
+                        "MinSize",
+                        "MaxSize",
+                        "DesiredCapacity"
+                    ]
+                }
+            ]
+        }
+    },
+    "Parameters" : {
+        "APPVERSION":{
+            "Type": "String",
+            "Description": "Application Version to Deploy",
+            "Default" : "1"
+        },
+        "ENVIRONMENT":{
+            "Type": "String",
+            "Description": "Type of environment to provision",
+            "Default": "DEV",
+            "AllowedValues" : ["DEV", "TEST", "PROD", "PRESALES"]
+        },
+        "MinSize" : {
+            "Type" : "String",
+            "Description" : "Minimum number of app servers",
+            "Default" : "1"
+        },
+        "MaxSize" : {
+            "Type" : "String",
+            "Description" : "Maximum Number of app servers (Desired x 2",
+            "Default" : "2"
+        },
+        "DesiredCapacity" : {
+            "Type" : "String",
+            "Description" : "Nominal size of APP Environment",
+            "Default" : "1"
+        }
+    },
+    "Mappings" : {
+		"RegionMap": {
+			"us-east-1": {
+				"AMALINUX": "ami-c481fad3"
+			},
+			"us-east-2": {
+				"AMALINUX": "ami-71ca9114"
+			},
+			"us-west-1": {
+				"AMALINUX": "ami-de347abe"
+			},
+			"us-west-2": {
+				"AMALINUX": "ami-b04e92d0"
+			},
+			"ca-central-1" : {
+				"AMALINUX" : "ami-eb20928f"
+			},
+			"eu-west-1": {
+				"AMALINUX": "ami-d41d58a7"
+			},
+			"eu-central-1": {
+				"AMALINUX": "ami-0044b96f"
+			},
+			"eu-west-2" : {
+				"AMALINUX" : "ami-bfe0eadb"
+			},
+			"ap-southeast-1": {
+				"AMALINUX": "ami-7243e611"
+			},
+			"ap-southeast-2": {
+				"AMALINUX": "ami-55d4e436"
+			},
+			"ap-northeast-2": {
+				"AMALINUX": "ami-a04297ce"
+			},
+			"ap-northeast-1": {
+				"AMALINUX": "ami-1a15c77b"
+			},
+			"ap-south-1": {
+				"AMALINUX": "ami-cacbbea5"
+			},
+			"sa-east-1": {
+				"AMALINUX": "ami-b777e4db"
+			}
+		},
+        "InstanceSize" : {
+            "DEV" : {
+                "EC2" : "t2.micro"
+            },
+            "TEST" : {
+                "EC2" : "t2.micro"
+            },
+            "PROD" : {
+                "EC2" : "t2.small"
+            },
+            "PRESALES" : {
+                "EC2" : "t2.micro"
+            }
+        }        
+    },
+    "Resources" : {
+        "AutoSubnetCustomResource" : {
+            "Type" : "Custom::LambdaAutoSubnet",
+            "Properties" : {
+                "ServiceToken" : {"Fn::ImportValue" : "sharedinf-autosubnetarn"},
+                "DynamoDBRegion" : {"Ref" : "AWS::Region"},
+                "DynamoDBTable" : {"Fn::ImportValue" : "sharedinf-autosubnetddbtablename"},
+                "VPCCidr" : {"Fn::ImportValue" : "sharedinf-vpciprange"},
+                "Debug" : "True"
+            }
+        },
+        "AutoScalingGroup" : {
+            "CreationPolicy" : {
+                "ResourceSignal" : {
+                    "Count" : {"Ref" : "DesiredCapacity"},
+                    "Timeout" : "PT5M"
+                }
+            },
+            "UpdatePolicy" : {
+                "AutoScalingReplacingUpdate" : {
+                    "WillReplace" : "true"
+                }
+            },
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+                "Cooldown" : "300",
+                "DesiredCapacity" : {"Ref" : "DesiredCapacity"},
+                "HealthCheckGracePeriod" : "300",
+                "HealthCheckType" : "ELB",
+                "LaunchConfigurationName" : {"Ref" : "LaunchConfiguration"},
+                "LoadBalancerNames" : [{"Ref" : "ELB"}],
+                "MaxSize" : {"Ref" : "MaxSize"},
+                "MinSize" : {"Ref" : "MinSize"},
+                "VPCZoneIdentifier" : [
+                    {"Ref" : "SubnetPrivateA"},
+                    {"Ref" : "SubnetPrivateB"}
+                ]
+            }
+        },
+        "LaunchConfiguration" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "ImageId" : {"Fn::FindInMap" : ["RegionMap", {"Ref": "AWS::Region"}, "AMALINUX"]},
+                "InstanceType" : {"Fn::FindInMap" : ["InstanceSize", {"Ref":"ENVIRONMENT"} , "EC2"]},
+                "KeyName" : "AdvancedCFN",
+                "SecurityGroups" : [
+                    {"Ref":"SG"}
+                ],
+                "UserData" : {"Fn::Base64" : {"Fn::Join" : ["",[
+                    "#!/bin/bash", "\n",
+                    "yum update -y aws-cfn-bootstrap", "\n",
+                    "/opt/aws/bin/cfn-init -v", 
+                    " --stack ", {"Ref" : "AWS::StackName"},
+                    " --resource LaunchConfiguration",
+                    " --configsets www",
+                    " --region ", {"Ref": "AWS::Region"}, "\n",
+                    "curl 127.0.0.1/app.php | grep -f /var/www/html/test.pattern", "\n",
+                    "/opt/aws/bin/cfn-signal -e $?", 
+                    " --stack ", {"Ref" : "AWS::StackName"},
+                    " --resource AutoScalingGroup",
+                    " --region ", {"Ref": "AWS::Region"}, "\n"
+                ]]}}
+            },
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "configSets" : {
+                        "www" : ["configure_cfn", "install_www", "config_app"]
+                    },
+					"configure_cfn" : {
+						"files" : {
+							"/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+								"content" : {"Fn::Join" : ["", [
+									"[cfn-auto-reloader-hook]\n",
+									"triggers=post.update\n",
+									"path=Resources.LaunchConfiguration.Metadata.AWS::CloudFormation::Init\n",
+									"action=/opt/aws/bin/cfn-init -v",
+									" --stack ", {"Ref" : "AWS::StackName"},
+									" --resource LaunchConfiguration",
+									" --configsets www",
+									" --region ", {"Ref" : "AWS::Region"}, "\n"
+								]]},
+								"mode" : "000400",
+								"owner" : "root",
+								"group" : "root"
+							},
+							"/etc/cfn/cfn-hup.conf" : {
+								"content" : {"Fn::Join" : ["",[
+									"[main]\n",
+									"stack=", {"Ref" : "AWS::StackId"}, "\n",
+									"region=", {"Ref" : "AWS::Region"}, "\n",
+									"verbose=true\n",
+									"interval=5\n"
+								]]},
+								"mode" : "000400",
+								"owner" : "root",
+								"group" : "root"								
+							},
+							"/var/www/html/index2.html" : {
+								"content" : "test9"
+							}
+						},
+						"services" : {
+							"sysvinit" : {
+								"cfn-hup" : {
+									"enabled" : "true",
+									"ensureRunning" : "true",
+									"files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]
+								}
+							}
+						}
+					},
+                    "install_www" : {
+                        "packages" : {
+                            "yum" : {
+                                "httpd" : [],
+                                "php" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : {
+                                    "enabled" : "true",
+                                    "ensureRunning" : "true"
+                                }
+                            }
+                        }
+                    },
+                    "config_app" : {
+                        "sources" : {
+                            "/var/www/html" : {"Fn::Join" : ["", [
+                                {"Fn::ImportValue" : "sharedinf-appbucketurl"},
+                                "/App",
+                                {"Ref":"APPVERSION"},
+                                ".zip"
+                            ]]}
+                        },
+                        "files" : {
+                            "/var/www/html/test.pattern.zip" : {
+                                "source" : {"Fn::Join" : ["", [
+                                    {"Fn::ImportValue" : "sharedinf-appbucketurl"},
+                                    "/Test",
+                                    {"Ref":"APPVERSION"},
+                                    ".zip"
+                                ]]},
+                                "mode": "000644",
+                                "owner" : "root",
+                                "group" : "root"
+                            }
+                        },
+                        "commands" : {
+                            "unzippattern" : {
+                                "cwd": "/var/www/html",
+                                "command" : "unzip -o test.pattern.zip"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "SubnetPublicA" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["0", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Fn::GetAtt" : ["AutoSubnetCustomResource", "AppPublicCIDRA"]},
+                "MapPublicIpOnLaunch" : "true",
+                "VpcId" : {"Fn::ImportValue" : "sharedinf-vpcid"}
+            }
+        },
+        "SubnetPublicB" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["1", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Fn::GetAtt" : ["AutoSubnetCustomResource", "AppPublicCIDRB"]},
+                "MapPublicIpOnLaunch" : "true",
+                "VpcId" : {"Fn::ImportValue" : "sharedinf-vpcid"}
+            }
+        },
+        "SubnetPrivateA" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["0", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Fn::GetAtt" : ["AutoSubnetCustomResource", "AppPrivateCIDRA"]},
+                "MapPublicIpOnLaunch" : "false",
+                "VpcId" : {"Fn::ImportValue" : "sharedinf-vpcid"}
+            }
+        },
+        "SubnetPrivateB" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["1", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Fn::GetAtt" : ["AutoSubnetCustomResource", "AppPrivateCIDRB"]},
+                "MapPublicIpOnLaunch" : "false",
+                "VpcId" : {"Fn::ImportValue" : "sharedinf-vpcid"}
+            }
+        },
+        "SubnetRouteTableAssociatePublicA" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Fn::ImportValue" : "sharedinf-publicrt"},
+                "SubnetId" : {"Ref" : "SubnetPublicA"}
+            }
+        },
+        "SubnetRouteTableAssociatePublicB" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Fn::ImportValue" : "sharedinf-publicrt"},
+                "SubnetId" : {"Ref" : "SubnetPublicB"}
+            }
+        }, 
+        "SubnetRouteTableAssociatePrivateA" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Fn::ImportValue" : "sharedinf-privaterta"},
+                "SubnetId" : {"Ref" : "SubnetPrivateA"}
+            }
+        },   
+        "SubnetRouteTableAssociatePrivateB" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Fn::ImportValue" : "sharedinf-privatertb"},
+                "SubnetId" : {"Ref" : "SubnetPrivateB"}
+            }
+        },
+        "ELB" : {
+            "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {
+                "CrossZone" : "true",
+                "Listeners": [
+                    {
+                        "InstancePort" : "80",
+                        "InstanceProtocol" : "HTTP",
+                        "LoadBalancerPort" : "80",
+                        "Protocol" : "HTTP"
+                    }
+                ],
+                "Subnets" : [
+                    {"Ref" : "SubnetPublicA"},
+                    {"Ref" : "SubnetPublicB"}
+                ],
+                "SecurityGroups" : [
+                    {"Ref" : "SG"}
+                ]            
+            }
+        },
+        "SG" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : {"Fn::Join" : ["",["Stack", {"Ref": "AWS::StackId"}, " Application V", {"Ref":"APPVERSION"}, " - ", {"Ref" : "ENVIRONMENT"}        ]]},
+                "VpcId" : {"Fn::ImportValue" : "sharedinf-vpcid"},
+                "SecurityGroupIngress" : [
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "IpProtocol" : "tcp",
+                        "ToPort" : "80",
+                        "FromPort" : "80"
+                    },
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "IpProtocol" : "tcp",
+                        "ToPort" : "22",
+                        "FromPort" : "22"                       
+                    }
+                ],
+                "SecurityGroupEgress" : [
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "ToPort" : "-1",
+                        "IpProtocol" : "-1"
+                    }
+                ]
+            }
+        }   
+    },
+    "Outputs" : {
+        "Endpoint" : {
+            "Description" : "Application Endpoint Address",
+            "Value" : {"Fn::Join" : ["", ["http://", {"Fn::GetAtt":["ELB", "DNSName"]}, "/app.php"]]}
+        }
+    }
+}

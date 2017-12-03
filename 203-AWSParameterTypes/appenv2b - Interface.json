@@ -1,0 +1,413 @@
+{
+    "Metadata": {
+        "AWS::CloudFormation::Interface" : {
+            "ParameterGroups" : [
+                {
+                    "Label" : {
+                        "default" : "Shared Infrastructure Details"
+                    },
+                    "Parameters" : [
+                        "VPCID",
+                        "PUBLICRT",
+                        "PRIVATERTA",
+                        "PRIVATERTB",
+                        "APPBucketURL"
+                    ]
+                },
+                {
+                    "Label" : {
+                        "default" : "App Environment Networking"
+                    },
+                    "Parameters" : [
+                        "APPPublicCIDRA",
+                        "APPPublicCIDRB",
+                        "APPPrivateCIDRA",
+                        "APPPrivateCIDRB"
+                    ]
+                },
+                {
+                    "Label" : {
+                        "default" : "App Environment Configuration"
+                    },
+                    "Parameters" : [
+                        "ENVIRONMENT",
+                        "APPVERSION"
+                    ]
+                }
+            ]
+        }
+    },
+    "Parameters" : {
+        "VPCID" : {
+            "Type" : "AS::EC2::VPC::Id",
+            "Description" : "Shared Infrastructure VPC to use"
+        },
+        "PUBLICRT": {
+            "Type": "String",
+            "Description": "Shared Infrastructure Public Route Table"
+        },
+        "PRIVATERTA":{
+            "Type": "String",
+            "Description": "Shared Infrastructure Private Route Table - A"
+        },
+        "PRIVATERTB":{
+            "Type": "String",
+            "Description": "Shared Infrastructure Private Route Table - B"
+        },
+        "APPVERSION":{
+            "Type": "String",
+            "Description": "Application Version to Deploy"
+        },
+        "APPBucketURL":{
+            "Type": "String",
+            "Description": "Application Bucket Location"
+        },
+        "ENVIRONMENT":{
+            "Type": "String",
+            "Description": "Type of environment to provision",
+            "Default": "DEV",
+            "AllowedValues" : ["DEV", "TEST", "PROD", "PRESALES"]
+        },
+        "APPPublicCIDRA":{
+            "Type": "String",
+            "Description": "CIDR to use for public subnet A for app environment.",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "Must be a valid CIDR range in the form x.x.x.x/22"
+        },
+        "APPPublicCIDRB": {
+            "Type": "String",
+            "Description": "CIDR to use for public subnet B for app environment.",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "Must be a valid CIDR range in the form x.x.x.x/22"
+        },
+        "APPPrivateCIDRA": { 
+            "Type": "String",
+            "Description": "CIDR to use for public subnet A for app environment.",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "Must be a valid CIDR range in the form x.x.x.x/22"
+        },
+        "APPPrivateCIDRB": {
+            "Type": "String",
+            "Description": "CIDR to use for public subnet B for app environment.",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "Must be a valid CIDR range in the form x.x.x.x/22"     
+        }
+    },
+    "Mappings" : {
+		"RegionMap": {
+			"us-east-1": {
+				"AMALINUX": "ami-c481fad3"
+			},
+			"us-east-2": {
+				"AMALINUX": "ami-71ca9114"
+			},
+			"us-west-1": {
+				"AMALINUX": "ami-de347abe"
+			},
+			"us-west-2": {
+				"AMALINUX": "ami-b04e92d0"
+			},
+			"ca-central-1" : {
+				"AMALINUX" : "ami-eb20928f"
+			},
+			"eu-west-1": {
+				"AMALINUX": "ami-d41d58a7"
+			},
+			"eu-central-1": {
+				"AMALINUX": "ami-0044b96f"
+			},
+			"eu-west-2" : {
+				"AMALINUX" : "ami-bfe0eadb"
+			},
+			"ap-southeast-1": {
+				"AMALINUX": "ami-7243e611"
+			},
+			"ap-southeast-2": {
+				"AMALINUX": "ami-55d4e436"
+			},
+			"ap-northeast-2": {
+				"AMALINUX": "ami-a04297ce"
+			},
+			"ap-northeast-1": {
+				"AMALINUX": "ami-1a15c77b"
+			},
+			"ap-south-1": {
+				"AMALINUX": "ami-cacbbea5"
+			},
+			"sa-east-1": {
+				"AMALINUX": "ami-b777e4db"
+			}
+		},
+        "InstanceSize" : {
+            "DEV" : {
+                "EC2" : "t2.micro"
+            },
+            "TEST" : {
+                "EC2" : "t2.micro"
+            },
+            "PROD" : {
+                "EC2" : "t2.small"
+            },
+            "PRESALES" : {
+                "EC2" : "t2.micro"
+            }
+        }        
+    },
+    "Resources" : {
+        "SubnetPublicA" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["0", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Ref" : "APPPublicCIDRA"},
+                "MapPublicIpOnLaunch" : "true",
+                "VpcId" : {"Ref" : "VPCID"}
+            }
+        },
+        "SubnetPublicB" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["1", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Ref" : "APPPublicCIDRB"},
+                "MapPublicIpOnLaunch" : "true",
+                "VpcId" : {"Ref" : "VPCID"}
+            }
+        },
+        "SubnetPrivateA" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["0", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Ref" : "APPPrivateCIDRA"},
+                "MapPublicIpOnLaunch" : "false",
+                "VpcId" : {"Ref" : "VPCID"}
+            }
+        },
+        "SubnetPrivateB" : {
+            "Type" : "AWS::EC2::Subnet",
+            "Properties" : {
+                "AvailabilityZone" : {"Fn::Select" : ["1", {"Fn::GetAZs" : ""}]},
+                "CidrBlock" : {"Ref" : "APPPrivateCIDRB"},
+                "MapPublicIpOnLaunch" : "false",
+                "VpcId" : {"Ref" : "VPCID"}
+            }
+        },
+        "SubnetRouteTableAssociatePublicA" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PUBLICRT"},
+                "SubnetId" : {"Ref" : "SubnetPublicA"}
+            }
+        },
+        "SubnetRouteTableAssociatePublicB" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PUBLICRT"},
+                "SubnetId" : {"Ref" : "SubnetPublicB"}
+            }
+        }, 
+        "SubnetRouteTableAssociatePrivateA" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PRIVATERTA"},
+                "SubnetId" : {"Ref" : "SubnetPrivateA"}
+            }
+        },   
+        "SubnetRouteTableAssociatePrivateB" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties" : {
+                "RouteTableId" : {"Ref" : "PRIVATERTB"},
+                "SubnetId" : {"Ref" : "SubnetPrivateB"}
+            }
+        },
+        "ELB" : {
+            "Type" : "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties" : {
+                "CrossZone" : "true",
+                "Instances" : [{"Ref" : "EC2"}],
+                "Listeners": [
+                    {
+                        "InstancePort" : "80",
+                        "InstanceProtocol" : "HTTP",
+                        "LoadBalancerPort" : "80",
+                        "Protocol" : "HTTP"
+                    }
+                ],
+                "Subnets" : [
+                    {"Ref" : "SubnetPublicA"},
+                    {"Ref" : "SubnetPublicB"}
+                ],
+                "SecurityGroups" : [
+                    {"Ref" : "SG"}
+                ]            
+            }
+        },
+        "SG" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : {"Fn::Join" : ["",["Stack", {"Ref": "AWS::StackId"}, " Application V", {"Ref":"APPVERSION"}, " - ", {"Ref" : "ENVIRONMENT"}        ]]},
+                "VpcId" : {"Ref" : "VPCID"},
+                "SecurityGroupIngress" : [
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "IpProtocol" : "tcp",
+                        "ToPort" : "80",
+                        "FromPort" : "80"
+                    },
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "IpProtocol" : "tcp",
+                        "ToPort" : "22",
+                        "FromPort" : "22"                       
+                    }
+                ],
+                "SecurityGroupEgress" : [
+                    {
+                        "CidrIp" : "0.0.0.0/0",
+                        "ToPort" : "-1",
+                        "IpProtocol" : "-1"
+                    }
+                ]
+            }
+        },
+        "EC2" : {
+            "Type" : "AWS::EC2::Instance",
+            "DeletionPolicy" : "Delete",
+            "CreationPolicy" : {
+                "ResourceSignal" : {
+                    "Timeout" : "PT5M"
+                }
+            },
+            "Properties" : {
+                "ImageId" : {"Fn::FindInMap" : ["RegionMap", {"Ref": "AWS::Region"}, "AMALINUX"]},
+                "InstanceType" : {"Fn::FindInMap" : ["InstanceSize", {"Ref":"ENVIRONMENT"} , "EC2"]},
+                "KeyName" : "AdvancedCFN",
+                "SecurityGroupIds" : [
+                    {"Ref":"SG"}
+                ],
+                "SubnetId" : {"Ref":"SubnetPublicA"},
+                "UserData" : {"Fn::Base64" : {"Fn::Join" : ["",[
+                    "#!/bin/bash", "\n",
+                    "yum update -y aws-cfn-bootstrap", "\n",
+                    "/opt/aws/bin/cfn-init -v", 
+                    " --stack ", {"Ref" : "AWS::StackName"},
+                    " --resource EC2",
+                    " --configsets www",
+                    " --region ", {"Ref": "AWS::Region"}, "\n",
+                    "curl 127.0.0.1/app.php | grep -f /var/www/html/test.pattern", "\n",
+                    "/opt/aws/bin/cfn-signal -e $?", 
+                    " --stack ", {"Ref" : "AWS::StackName"},
+                    " --resource EC2",
+                    " --region ", {"Ref": "AWS::Region"}, "\n"
+                ]]}}
+            },
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "configSets" : {
+                        "www" : ["configure_cfn", "install_www", "config_app"]
+                    },
+					"configure_cfn" : {
+						"files" : {
+							"/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+								"content" : {"Fn::Join" : ["", [
+									"[cfn-auto-reloader-hook]\n",
+									"triggers=post.update\n",
+									"path=Resources.EC2.Metadata.AWS::CloudFormation::Init\n",
+									"action=/opt/aws/bin/cfn-init -v",
+									" --stack ", {"Ref" : "AWS::StackName"},
+									" --resource EC2",
+									" --configsets www",
+									" --region ", {"Ref" : "AWS::Region"}, "\n"
+								]]},
+								"mode" : "000400",
+								"owner" : "root",
+								"group" : "root"
+							},
+							"/etc/cfn/cfn-hup.conf" : {
+								"content" : {"Fn::Join" : ["",[
+									"[main]\n",
+									"stack=", {"Ref" : "AWS::StackId"}, "\n",
+									"region=", {"Ref" : "AWS::Region"}, "\n",
+									"verbose=true\n",
+									"interval=5\n"
+								]]},
+								"mode" : "000400",
+								"owner" : "root",
+								"group" : "root"								
+							},
+							"/var/www/html/index2.html" : {
+								"content" : "test9"
+							}
+						},
+						"services" : {
+							"sysvinit" : {
+								"cfn-hup" : {
+									"enabled" : "true",
+									"ensureRunning" : "true",
+									"files" : ["/etc/cfn/cfn-hup.conf", "/etc/cfn/hooks.d/cfn-auto-reloader.conf"]
+								}
+							}
+						}
+					},
+                    "install_www" : {
+                        "packages" : {
+                            "yum" : {
+                                "httpd" : [],
+                                "php" : []
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "httpd" : {
+                                    "enabled" : "true",
+                                    "ensureRunning" : "true"
+                                }
+                            }
+                        }
+                    },
+                    "config_app" : {
+                        "sources" : {
+                            "/var/www/html" : {"Fn::Join" : ["", [
+                                {"Ref" : "APPBucketURL"},
+                                "/App",
+                                {"Ref":"APPVERSION"},
+                                ".zip"
+                            ]]}
+                        },
+                        "files" : {
+                            "/var/www/html/test.pattern.zip" : {
+                                "source" : {"Fn::Join" : ["", [
+                                    {"Ref" : "APPBucketURL"},
+                                    "/Test",
+                                    {"Ref":"APPVERSION"},
+                                    ".zip"
+                                ]]},
+                                "mode": "000644",
+                                "owner" : "root",
+                                "group" : "root"
+                            }
+                        },
+                        "commands" : {
+                            "unzippattern" : {
+                                "cwd": "/var/www/html",
+                                "command" : "unzip -o test.pattern.zip"
+                            }
+                        }
+                    }
+                }
+            }
+        }       
+    },
+    "Outputs" : {
+        "Endpoint" : {
+            "Description" : "Application Endpoint Address",
+            "Value" : {"Fn::Join" : ["", ["http://", {"Fn::GetAtt":["ELB", "DNSName"]}, "/app.php"]]}
+        }
+    }
+}

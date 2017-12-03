@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.5.4.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<script type="text/javascript">
+  var creds = new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: 'COGNITO-ID-POOL-CHANGEME'
+  })
+  AWS.config.update({
+    region: 'REGION-CHANGE-ME',
+    credentials: creds
+  });
+</script>
+<head>
+  <link href='http://fonts.googleapis.com/css?family=Playfair+Display' rel='stylesheet' type='text/css'>
+  <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
+  <meta name="google-signin-client_id" content="GOOGLE-CLIENT-ID-CHANGE-ME">
+  <style>
+    h1 {font: 400 60px/1.5 'Playfair Display', Georgia, serif;}
+    p {font: 400 16px/1.6 'Muli', Verdana, Helvetica, sans-serif;}
+  </style>
+</head>
+<body>
+
+
+    <h1> Wordpress Hosting Inc - Self-Service POC </h1>
+
+  <p id="signinout">
+    <table>
+      <tr>
+        <td> <div class="g-signin2" data-onsuccess="onSignIn"></div> </td>
+        <td> <div id="customBtn"> <a href="#" onclick="signOut();">Sign out</a></div> </td>
+      </tr>
+    </table>
+  </p>
+  <p id="subtitle">
+  </p>
+  <p id="buttonsnboxes">
+  </p>
+  <p id="results">
+  </p>
+
+  <script>
+
+  jQuery("#subtitle").html("<table border=\"1\"><tr><td> Logged in</td><td> No </td></tr></table>");
+
+  function listStacks(profileid) {
+    var cloudformation = new AWS.CloudFormation();
+    var param ={
+      StackStatusFilter: [
+        'CREATE_IN_PROGRESS', 'CREATE_FAILED', 'CREATE_COMPLETE', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_FAILED',
+        'ROLLBACK_COMPLETE', 'DELETE_IN_PROGRESS', 'DELETE_FAILED', 'UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+        'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_IN_PROGRESS', 'UPDATE_ROLLBACK_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+        'UPDATE_ROLLBACK_COMPLETE', 'REVIEW_IN_PROGRESS'
+      ]
+    };
+    cloudformation.listStacks(param, function(err, data) {
+      if (err) document.getElementById("results").innerHTML = "Error Occured.. Permissions ??";
+      else {
+
+        console.log(data)
+
+        var html = "<table border=\"1\"><tr><td>#</td><td>StackName</td><td>Creation Time</td><td>STATUS</td><td>Change Size</td><td>Delete</td><td>Open WP</td></tr>"
+        jQuery.each(data.StackSummaries, function(index,obj) {
+          if (obj.StackName.startsWith("WP"+profileid)) {
+
+            html+= ('<tr><td>'+index+'</td><td>'+obj.StackName+'</td><td>'+obj.CreationTime+'</td><td>'+obj.StackStatus+'</td><td>')
+
+            if (obj.StackStatus=='CREATE_COMPLETE' || obj.StackStatus=='ROLLBACK_COMPLETE' || obj.StackStatus=='UPDATE_COMPLETE') {
+              html+=('<button onclick=\"updateStack(\''+obj.StackName+'\',\'SMALL\',\''+profileid+'\')\">SMALL</button>')
+              html+=('<button onclick=\"updateStack(\''+obj.StackName+'\',\'MEDIUM\',\''+profileid+'\')\">MEDIUM</button>')
+              html+=('<button onclick=\"updateStack(\''+obj.StackName+'\',\'LARGE\',\''+profileid+'\')\">LARGE</button>')
+            }
+
+
+
+
+            html+=('<td><button onclick=\"deleteStack(\''+obj.StackName+'\',\''+profileid+'\')\">DELETE</button></td>')
+            html+=('<td><a href=\"#\" id=\"link'+obj.StackName+'\">Open WP</a></td></tr>')
+          }
+
+        })
+        html += "</table>"
+        jQuery("#results").html(html)
+
+        cloudformation.describeStacks({}, function(err, data) {
+          jQuery.each(data.Stacks, function(index,stack) {
+            if (stack.StackName.startsWith("WP"+profileid)) {
+              console.log("Processing a stack for link update.")
+              var linkurl=""
+              jQuery.each(stack.Outputs, function(index,output) {
+                if (output.OutputKey=='wproot') {
+                  linkurl=output.OutputValue
+                }
+              })
+              $("#link"+stack.StackName).attr("href", linkurl)
+            }
+          })
+        })
+
+
+      }
+    })
+
+
+  }
+  function updateStack(stackname, stacksize, profileid) {
+    // update stack parameter - env size = stacksize
+    var cloudformation = new AWS.CloudFormation();
+    console.log ("Update stack name="+stackname+" requested size="+stacksize)
+    params= {
+      StackName:stackname,
+      UsePreviousTemplate: true,
+      Parameters: [
+        {ParameterKey: 'EnvironmentSize', ParameterValue: stacksize, UsePreviousValue: false},
+        {ParameterKey: 'SnapToRestore',  UsePreviousValue: true},
+        {ParameterKey: 'DatabaseName',  UsePreviousValue: true},
+        {ParameterKey: 'DatabaseUser',  UsePreviousValue: true},
+        {ParameterKey: 'DatabasePassword', UsePreviousValue: true},
+      ]
+    };
+    cloudformation.updateStack(params, function(err, data) {
+      if (err) console.log(err, err.stack); // an error occurred
+      else     {
+        console.log(data);           // successful response
+        listStacks(profileid);
+      }
+    });
+
+  }
+
+  function onSignIn(googleUser) {
+    var profile = googleUser.getBasicProfile();
+    console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+    console.log('Name: ' + profile.getName());
+    console.log('Image URL: ' + profile.getImageUrl());
+    console.log('Email: ' + profile.getEmail());
+    var id_token = googleUser.getAuthResponse().id_token;
+    creds.params.Logins = {};
+    creds.params.Logins['accounts.google.com'] = id_token;
+    creds.expired = true;
+    jQuery("#subtitle").html('<table border=\"1\"><tr><td> Logged In </td><td> Yes - Google </td><td>'+profile.getEmail()+'</td><td>Profile ID '+profile.getId()+'</td></tr></table>');
+
+    // add the controls for stack control.
+    listStacks(profile.getId())
+
+
+  }
+
+
+
+  function deleteStack(stackname, profileid) {
+
+    var cloudformation = new AWS.CloudFormation();
+    var param = {
+      StackName: stackname
+    };
+    cloudformation.deleteStack(param, function(err, data) {
+      if (err) console.log(err, err.stack); // an error occurred
+      else     {
+        console.log(data)
+        listStacks(profileid)
+      }
+    });
+  }
+  function signOut() {
+    var auth2 = gapi.auth2.getAuthInstance();
+    auth2.signOut().then(function () {
+      console.log('User signed out.');
+      jQuery("#results").html("");
+      jQuery("#subtitle").html("<table border=\"1\"><tr><td> Logged In </td><td> No </td></tr></table>");
+      creds.expired = true;
+      AWS.config.credentials.clearCachedId();
+      location.reload();
+    });
+  }
+
+
+  </script>
+
+</body>
+</html>

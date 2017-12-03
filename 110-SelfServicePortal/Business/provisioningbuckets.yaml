@@ -1,0 +1,52 @@
+Resources:
+  resbucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        ErrorDocument: index.html
+        IndexDocument: index.html
+  selfservebucket:
+      Type: "AWS::S3::Bucket"
+      Properties:
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          ErrorDocument: index.html
+          IndexDocument: index.html
+  resbucketpolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref resbucket
+      PolicyDocument:
+        Statement:
+          -
+            Sid: "ABC123"
+            Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref resbucket, "/*"]]
+            Principal:
+              AWS:
+                - "*"
+  selfservebucketpolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref selfservebucket
+      PolicyDocument:
+        Statement:
+          -
+            Sid: "ABC123"
+            Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref selfservebucket, "/*"]]
+            Principal:
+              AWS:
+                - "*"
+Outputs:
+  resbucketurl:
+    Description: URL for Resource Bucket
+    Value: !GetAtt resbucket.WebsiteURL
+  selfservebucketURL:
+    Description: URL for Self Service Portal
+    Value: !GetAtt selfservebucket.WebsiteURL

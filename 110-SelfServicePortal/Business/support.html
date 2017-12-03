@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.6.10.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script type="text/javascript">
+    AWS.config.update({accessKeyId: 'SUPPORTAKID-CHANGEME', secretAccessKey: 'SUPPORTSECRET-CHANGEME'});
+    AWS.config.region = 'REGION-CHANGEME';
+  </script>
+  <head>
+    <link href='http://fonts.googleapis.com/css?family=Playfair+Display' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Muli' rel='stylesheet' type='text/css'>
+    <style>
+      h1 {font: 400 60px/1.5 'Playfair Display', Georgia, serif;}
+      p {font: 400 16px/1.6 'Muli', Verdana, Helvetica, sans-serif;}
+    </style>
+  </head>
+  <body>
+    <p id="title">
+    <h1>Wordpress Hosting Inc - Provisioning POC</h1>
+    </p>
+    <p id="buttonsnboxes">
+      <script>
+        function provisionStack() {
+          var stackname = document.getElementById("clientname").value;
+          var envsize = document.getElementById("envsize").value;
+          var cloudformation = new AWS.CloudFormation();
+          var param = {
+            StackName: stackname,
+            RoleARN: 'STACK-ROLE-ARN-CHANGEME',
+            Parameters: [
+              {ParameterKey: 'EnvironmentSize', ParameterValue: envsize, UsePreviousValue: false}
+            ],
+            OnFailure: 'DO_NOTHING',
+            TemplateURL: 'https://RESOURCEBUCKET-CHANGEME/wp.yaml'
+          };
+          console.log(param)
+          cloudformation.createStack(param, function(err,data){
+            if (err) {
+              console.log(err, err.stack); // an error occurred
+              document.getElementById("results").innerHTML = "Error Occured.. Permissions ??";
+            } else {
+              listStacks()
+            }
+          });
+        }
+      </script>
+      <script>
+        function listStacks() {
+          //var table = new AWS.DynamoDB({params: {TableName: 'lo_courses'}});
+          var cloudformation = new AWS.CloudFormation();
+          var param ={
+            StackStatusFilter: [
+              'CREATE_IN_PROGRESS', 'CREATE_FAILED', 'CREATE_COMPLETE', 'ROLLBACK_IN_PROGRESS', 'ROLLBACK_FAILED',
+              'ROLLBACK_COMPLETE', 'DELETE_IN_PROGRESS', 'DELETE_FAILED', 'UPDATE_IN_PROGRESS', 'UPDATE_COMPLETE_CLEANUP_IN_PROGRESS',
+              'UPDATE_COMPLETE', 'UPDATE_ROLLBACK_IN_PROGRESS', 'UPDATE_ROLLBACK_FAILED', 'UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS',
+              'UPDATE_ROLLBACK_COMPLETE', 'REVIEW_IN_PROGRESS'
+            ]
+          };
+          var stacks = cloudformation.listStacks(param, function(err, data) {
+            if (err) document.getElementById("results").innerHTML = "Error Occured.. Permissions ??";
+            else {
+
+              console.log(data)
+              var html = "<table border=\"1\"><tr><td>#</td><td>StackName</td><td>Creation Time</td><td>STATUS</td><td>Delete</td></tr>"
+              jQuery.each(data.StackSummaries, function(index,obj) {
+                html+= ('<tr><td>'+index+'</td><td>'+obj.StackName+'</td><td>'+obj.CreationTime+'</td><td>'+obj.StackStatus+'</td><td><button onclick=\"deleteStack(\''+obj.StackName+'\')\">DELETE</button></td></tr>')
+                //html+= ('</tr><td>'+index+'</td><td>'+obj.c_id["S"]+'</td><td>'+obj.description["S"]+'</td><td>'+obj.passmark["N"]+'</td></tr>')
+              })
+              html += "</table>"
+              jQuery("#results").html(html)
+            }
+          })
+        }
+      </script>
+      <script>
+        function deleteStack(stackname) {
+          var cloudformation = new AWS.CloudFormation();
+          var param = {
+            StackName: stackname
+          };
+          cloudformation.deleteStack(param, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else     {
+              console.log(data)
+              listStacks()
+            }
+          });
+        }
+      </script>
+      <table>
+        <tr>
+          <td> ClientName </td>
+          <td> <input type="text" id="clientname" value="changeme"> </td>
+          <td> <select id="envsize" name="size">
+            <option value="SMALL">SMALL</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="LARGE">LARGE</option>
+          </td>
+          <td> <button onclick="provisionStack()">Provision a wordpress environment</button></td>
+        </tr>
+
+        <tr>
+          <td><button onclick="listStacks()">List Environments</button></td>
+        </tr>
+      </table>
+    </p>
+    <p id="results">
+    </p>
+  </body>
+</html>

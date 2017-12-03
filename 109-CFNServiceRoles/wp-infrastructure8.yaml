@@ -1,0 +1,236 @@
+Parameters:
+  SnapToRestore:
+    Type: String
+    Default: ""
+    Description: snap id to restore
+  EnvironmentSize:
+    Type: String
+    Default: SMALL
+    AllowedValues:
+      - SMALL
+      - MEDIUM
+      - LARGE
+    Description: Select Environment Size (S,M,L)
+  DatabaseName:
+    Type: String
+    Default: wordpress
+    MinLength: 1
+    MaxLength: 64
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*" # start with a letter, only alphanumeric characters - new for this lesson
+  DatabaseUser:
+    Type: String
+    MinLength: 1
+    MaxLength: 16
+    Default: wordpress
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*" # start with a letter, only alphanumeric characters - new for this lesson
+  DatabasePassword:
+    Type: String
+    MinLength: 8
+    MaxLength: 41
+    Default: w0rdpr355
+    NoEcho: true
+    AllowedPattern: "[a-zA-Z0-9]*" # Must only contain alphanumeric characters - new for this lesson
+Conditions:
+  isLarge:
+    !Equals [!Ref EnvironmentSize, "LARGE"]
+  isntLarge:
+    !Not [!Equals [!Ref EnvironmentSize, "LARGE"]]
+  isRestore:
+    !Not [!Equals [!Ref SnapToRestore, ""]]
+Mappings:
+  RegionMap:
+    us-east-1:
+      "AMALINUX" : "ami-c481fad3" # AMALINUX SEP 2016
+    us-east-2:
+      "AMALINUX" : "ami-71ca9114" # AMALINUX SEP 2016
+    us-west-1:
+      "AMALINUX" : "ami-de347abe" # AMALINUX SEP 2016
+    us-west-2:
+      "AMALINUX" : "ami-b04e92d0" # AMALINUX SEP 2016
+    ca-central-1:
+      "AMALINUX" : "ami-eb20928f" # AMALINUX SEP 2016 v01
+    eu-west-1:
+      "AMALINUX" : "ami-d41d58a7" # AMALINUX SEP 2016
+    eu-central-1:
+      "AMALINUX" : "ami-0044b96f" # AMALINUX SEP 2016
+    eu-west-2:
+      "AMALINUX" : "ami-bfe0eadb" # AMALINUX SEP 2016 v01
+    ap-southeast-1:
+      "AMALINUX" : "ami-7243e611" # AMALINUX SEP 2016
+    ap-southeast-2:
+      "AMALINUX" : "ami-55d4e436" # AMALINUX SEP 2016
+    ap-northeast-2:
+      "AMALINUX" : "ami-a04297ce" # AMALINUX SEP 2016
+    ap-northeast-1:
+      "AMALINUX" : "ami-1a15c77b" # AMALINUX SEP 2016
+    ap-south-1:
+      "AMALINUX" : "ami-cacbbea5" # AMALINUX SEP 2016
+    sa-east-1:
+      "AMALINUX" : "ami-b777e4db" # AMALINUX SEP 2016
+  InstanceSize:
+    SMALL:
+      "EC2" : "t2.micro"
+      "DB" : "db.t2.micro"
+    MEDIUM:
+      "EC2" : "t2.small"
+      "DB" : "db.t2.small"
+    LARGE:
+      "EC2" : "t2.medium"
+      "DB" : "db.r3.xlarge"
+Resources:
+  DB:
+    Type: "AWS::RDS::DBInstance"
+    Condition: isntLarge # added - only create the MySQL DB if its small/med
+    DeletionPolicy: Snapshot
+    Properties:
+      AllocatedStorage: 5
+      DBInstanceClass: !FindInMap [InstanceSize, !Ref EnvironmentSize, DB] # Dynamic mapping + Pseudo Parameter
+      DBName: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseName]
+      Engine: MySQL
+      StorageType: gp2
+      MasterUsername: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseUser]
+      MasterUserPassword: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabasePassword]
+      DBSnapshotIdentifier: !If [isRestore, !Ref SnapToRestore, !Ref "AWS::NoValue"]
+  DBAuroraCluster:
+    Type: "AWS::RDS::DBCluster"
+    DeletionPolicy: Snapshot
+    Condition: isLarge # only create if its a large EnvironmentSize
+    Properties:
+      DatabaseName: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseName]
+      Engine: aurora
+      MasterUsername: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseUser]
+      MasterUserPassword: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabasePassword]
+      SnapshotIdentifier: !If [isRestore, !Ref SnapToRestore, !Ref "AWS::NoValue"]
+  DBAurora:
+    Type : "AWS::RDS::DBInstance"
+    Condition: isLarge # only create if its a large EnvironmentSize
+    Properties:
+      DBClusterIdentifier: !Ref DBAuroraCluster
+      Engine: aurora
+      DBInstanceClass: !FindInMap [InstanceSize, !Ref EnvironmentSize, DB]
+  EC2:
+    Type: "AWS::EC2::Instance"
+    DeletionPolicy: Delete
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] # Dynamic mapping + Pseudo Parameter
+      InstanceType: !FindInMap [InstanceSize, !Ref EnvironmentSize, EC2]
+      KeyName: AdvancedCFN
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update -y aws-cfn-bootstrap # good practice - always do this.
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets wordpress --region ${AWS::Region}
+            yum -y update
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: "1"
+        Timeout: PT15M
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          wordpress:
+            - "configure_cfn"
+            - "install_wordpress"
+            - "config_wordpress"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.EC2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets wordpress --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+            /var/www/html/index2.html:
+              content: "test9"
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        install_wordpress:
+          packages:
+            yum:
+              httpd: []
+              php: []
+              mysql: []
+              php-mysql: []
+          sources:
+            /var/www/html: "http://wordpress.org/latest.tar.gz"
+          services:
+            sysvinit:
+              httpd:
+                enabled: "true"
+                ensureRunning: "true"
+        config_wordpress:
+          commands:
+            01_clone_config:
+              cwd: "/var/www/html/wordpress"
+              test: "test ! -e /var/www/html/wordpress/wp-config.php"
+              command: "cp wp-config-sample.php wp-config.php"
+            02_inject_dbhost:
+              cwd: "/var/www/html/wordpress"
+              command: !If
+                - isntLarge
+                - !Sub |
+                  sed -i 's/localhost/${DB.Endpoint.Address}/g' wp-config.php
+                - !Sub |
+                  sed -i 's/localhost/${DBAuroraCluster.Endpoint.Address}/g' wp-config.php
+            03_inject_dbname:
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                sed -i 's/database_name_here/${DatabaseName}/g' wp-config.php
+            04_inject_dbuser:
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                sed -i 's/username_here/${DatabaseUser}/g' wp-config.php
+            05_inject_dbpassword:
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                sed -i 's/password_here/${DatabasePassword}/g' wp-config.php
+            06_store_instance_ip:
+              cwd: "/var/www/html/wordpress"
+              command: "curl http://169.254.169.254/latest/meta-data/public-ipv4 > ip.address"
+            07a_inject_IP_1: # this allows a restore & change of IP without causing WP errors.
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                myip=`cat ip.address` && echo "define('WP_SITEURL', 'http://${!myip}/wordpress');" >> wp-config.php
+            07b_inject_IP_2: # this allows a restore & change of IP without causing WP errors.
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                myip=`cat ip.address` && echo "define('WP_HOME', 'http://${!myip}/wordpress');" >> wp-config.php
+            08a_update_theme_1:
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                myip=`cat ip.address` && echo "update_option('siteurl','http://${!myip}/wordpress');" >> /var/www/html/wordpress/wp-content/themes/twentyseventeen/functions.php
+            08a_update_theme_2:
+              cwd: "/var/www/html/wordpress"
+              command: !Sub |
+                myip=`cat ip.address` && echo "update_option('home','http://${!myip}/wordpress');" >> /var/www/html/wordpress/wp-content/themes/twentyseventeen/functions.php
+  S3:
+    Type: "AWS::S3::Bucket"
+    DeletionPolicy: Retain
+Outputs:
+  wproot:
+    Description: Access URL for wordpress
+    Value: !Join ["", ["http://", !GetAtt EC2.PublicIp, "/wordpress"]]
+  wpadmin:
+    Description: Admin Login URL - if restoring from snap, always go to this URL first
+    Value: !Join ["", ["http://", !GetAtt EC2.PublicIp, "/wordpress/wp-login.php"]]

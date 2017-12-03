@@ -1,0 +1,55 @@
+Resources:
+  iamuser:
+    Type: "AWS::IAM::User"
+    Properties:
+      UserName: cdllcportal
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AdministratorAccess"
+      LoginProfile:
+        Password: "P@55w0rd"
+        PasswordResetRequired: false
+  iamkeys:
+    DependsOn: iamuser
+    Type: "AWS::IAM::AccessKey"
+    Properties:
+      UserName: cdllcportal
+  portalbucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          -  AllowedHeaders: ['*']
+             AllowedMethods: ['GET']
+             AllowedOrigins: ['*']
+             Id: rule1
+             MaxAge: '3000'
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        ErrorDocument: index.html
+        IndexDocument: index.html
+  portalbucketpolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref portalbucket
+      PolicyDocument:
+        Statement:
+          -
+            Sid: "ABC123"
+            Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join ["", ["arn:aws:s3:::", !Ref portalbucket, "/*"]]
+            Principal:
+              AWS:
+                - "*"
+Outputs:
+  resbucketurl:
+    Description: URL for Portal Bucket
+    Value: !Sub ${portalbucket.WebsiteURL}/portal.html
+  adminakid:
+    Description: Portal Access Key ID
+    Value: !Ref iamkeys
+  adminsecretkey:
+    Description: Portal Secret Access Key
+    Value: !GetAtt iamkeys.SecretAccessKey
+

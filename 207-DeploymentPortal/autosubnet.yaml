@@ -1,0 +1,92 @@
+Resources:
+  AutoSubnetTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        -
+          AttributeName: "Cidr"
+          AttributeType: "S"
+        -
+          AttributeName: "StackId"
+          AttributeType: "S"
+      KeySchema:
+        -
+          AttributeName: "Cidr"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      GlobalSecondaryIndexes:
+        -
+          IndexName: "rangesforstack"
+          KeySchema:
+            -
+              AttributeName: "StackId"
+              KeyType: "HASH"
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: "5"
+            WriteCapacityUnits: "5"
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+  IAMPolicy:
+    DependsOn: IAMRole
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: autosubnetrole
+      Roles:
+        - !Ref IAMRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Action:
+              - "logs:*"
+            Resource:
+              - "arn:aws:logs:*:*:*"
+          -
+            Effect: Allow
+            Action:
+              - "dynamodb:*"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AutoSubnetTable}
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AutoSubnetTable}/index/*
+  subnetpicker:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - IAMRole
+      - IAMPolicy
+    Properties:
+      Role: !GetAtt IAMRole.Arn
+      Code:
+        S3Bucket: !ImportValue sharedinf-lambdabucketname
+        S3Key: autosubnet.zip
+      Handler: autosubnet.handler
+      Runtime: "python2.7"
+      Timeout: "300"
+      MemorySize: "128"
+Outputs:
+  autosubnetlambdaarn:
+    Description: ARN of AutoSubnet Lambda
+    Value: !GetAtt subnetpicker.Arn
+    Export:
+      Name: sharedinf-autosubnetarn
+  autosubnettablename:
+    Description: Table Name of AutoSubnet DDB Table
+    Value: !Ref AutoSubnetTable
+    Export:
+      Name: sharedinf-autosubnetddbtablename

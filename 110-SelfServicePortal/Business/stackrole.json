@@ -1,0 +1,35 @@
+{
+    "Resources" : {
+        "iamrole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version" : "2012-10-17",
+                    "Statement" : [
+                        {
+                            "Effect" : "Allow",
+                            "Action" : [
+                                "sts:AssumeRole"
+                            ],
+                            "Principal" : {
+                                "Service": [
+                                    "cloudformation.amazonaws.com"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                "Path" : "/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/AdministratorAccess"
+                ]
+            }
+        }
+    },
+    "Outputs" : {
+        "stackrole" : {
+            "Description" : "Stack Role Arn",
+            "Value" : {"Fn::GetAtt" : ["iamrole", "Arn"]}
+        }
+    }
+}

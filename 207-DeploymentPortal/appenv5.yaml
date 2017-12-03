@@ -1,0 +1,278 @@
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "App Environment Configuration"
+        Parameters:
+          - ENVIRONMENT
+          - APPVERSION
+          - MinSize
+          - MaxSize
+          - DesiredCapacity
+Parameters:
+  APPVERSION:
+    Type: String
+    Description: Application Version to Deploy
+    Default: "1"
+  ENVIRONMENT:
+    Type: String
+    Description: Type of environment to provision
+    Default: DEV
+    AllowedValues:
+      - DEV
+      - TEST
+      - PROD
+      - PRESALES
+  MinSize:
+    Type: String
+    Description: Minimum number of app servers
+    Default: "1"
+  MaxSize:
+    Type: String
+    Description: Maximum number of app servers (Desired x 2)
+    Default: "2"
+  DesiredCapacity:
+    Type: String
+    Description: Nominal Size of APP Env
+    Default: "1"
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      "AMALINUX" : "ami-c481fad3" # AMALINUX SEP 2016
+    us-east-2:
+      "AMALINUX" : "ami-71ca9114" # AMALINUX SEP 2016
+    us-west-1:
+      "AMALINUX" : "ami-de347abe" # AMALINUX SEP 2016
+    us-west-2:
+      "AMALINUX" : "ami-b04e92d0" # AMALINUX SEP 2016
+    ca-central-1:
+      "AMALINUX" : "ami-eb20928f" # AMALINUX SEP 2016 v01
+    eu-west-1:
+      "AMALINUX" : "ami-d41d58a7" # AMALINUX SEP 2016
+    eu-central-1:
+      "AMALINUX" : "ami-0044b96f" # AMALINUX SEP 2016
+    eu-west-2:
+      "AMALINUX" : "ami-bfe0eadb" # AMALINUX SEP 2016 v01
+    ap-southeast-1:
+      "AMALINUX" : "ami-7243e611" # AMALINUX SEP 2016
+    ap-southeast-2:
+      "AMALINUX" : "ami-55d4e436" # AMALINUX SEP 2016
+    ap-northeast-2:
+      "AMALINUX" : "ami-a04297ce" # AMALINUX SEP 2016
+    ap-northeast-1:
+      "AMALINUX" : "ami-1a15c77b" # AMALINUX SEP 2016
+    ap-south-1:
+      "AMALINUX" : "ami-cacbbea5" # AMALINUX SEP 2016
+    sa-east-1:
+      "AMALINUX" : "ami-b777e4db" # AMALINUX SEP 2016
+  InstanceSize:
+    DEV:
+      "EC2" : "t2.micro"
+    TEST:
+      "EC2" : "t2.micro"
+    PROD:
+      "EC2" : "t2.small"
+    PRESALES:
+      "EC2" : "t2.micro"
+Resources:
+  AutoSubnetCustomResource:
+    Type: "Custom::LambdaAutoSubnet" # or AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !ImportValue sharedinf-autosubnetarn # The ARN of the lambda function - only mandatory property
+      # "Provider Defined Properties" Below..
+      DynamoDBRegion: !Ref "AWS::Region"
+      DynamoDBTable: !ImportValue sharedinf-autosubnetddbtablename
+      VPCCidr: !ImportValue sharedinf-vpciprange
+      Debug: "True"
+  AutoScalingGroup:
+    CreationPolicy:
+      ResourceSignal:
+        Count: !Ref DesiredCapacity
+        Timeout: "PT5M"
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      Cooldown: "300"
+      DesiredCapacity: !Ref DesiredCapacity
+      HealthCheckGracePeriod: "300"
+      HealthCheckType: ELB
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      LoadBalancerNames:
+        - !Ref ELB
+      MaxSize: !Ref MaxSize
+      MinSize: !Ref MinSize
+      VPCZoneIdentifier:
+        - !Ref SubnetPrivateA
+        - !Ref SubnetPrivateB
+  LaunchConfiguration:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX]
+      InstanceType: !FindInMap [InstanceSize, !Ref ENVIRONMENT, EC2]
+      KeyName: AdvancedCFN
+      SecurityGroups:
+        - !Ref SG
+      UserData:
+        "Fn::Base64":
+          !Sub |
+            #!/bin/bash
+            yum update -y aws-cfn-bootstrap # good practice - always do this.
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --configsets www --region ${AWS::Region}
+            yum -y update
+            curl 127.0.0.1/app.php | grep -f /var/www/html/test.pattern
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource AutoScalingGroup --region ${AWS::Region}
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          www:
+            - "configure_cfn"
+            - "install_www"
+            - "config_app"
+        configure_cfn:
+          files:
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.LaunchConfiguration.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource LaunchConfiguration --configsets www --region ${AWS::Region}
+              mode: "000400"
+              owner: root
+              group: root
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackId}
+                region=${AWS::Region}
+                verbose=true
+                interval=5
+              mode: "000400"
+              owner: root
+              group: root
+          services:
+            sysvinit:
+              cfn-hup:
+                enabled: "true"
+                ensureRunning: "true"
+                files:
+                  - "/etc/cfn/cfn-hup.conf"
+                  - "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+        install_www:
+          packages:
+            yum:
+              httpd: []
+              php: []
+          services:
+            sysvinit:
+              httpd:
+                enabled: "true"
+                ensureRunning: "true"
+        config_app:
+          sources:
+            /var/www/html: !Join ["",[!ImportValue sharedinf-appbucketurl, "/App", !Ref APPVERSION, ".zip"]]
+          files:
+            /var/www/html/test.pattern.zip:
+              source: !Join ["",[!ImportValue sharedinf-appbucketurl, "/Test", !Ref APPVERSION, ".zip"]]
+              mode: "000644"
+              owner: "root"
+              group: "root"
+          commands:
+            unzippattern:
+              cwd: "/var/www/html"
+              command: "unzip -o test.pattern.zip"
+  SubnetPublicA: # Public Subnet for App Env in AZ - A
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      CidrBlock: !GetAtt AutoSubnetCustomResource.AppPublicCIDRA
+      MapPublicIpOnLaunch: true
+      VpcId: !ImportValue sharedinf-vpcid
+  SubnetPrivateA: # Private Subnet for App Env in AZ - A
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ]
+      CidrBlock: !GetAtt AutoSubnetCustomResource.AppPrivateCIDRA
+      MapPublicIpOnLaunch: false
+      VpcId: !ImportValue sharedinf-vpcid
+  SubnetPublicB: # Public Subnet for App Env in AZ - B  (not used yet)
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      CidrBlock: !GetAtt AutoSubnetCustomResource.AppPublicCIDRB
+      MapPublicIpOnLaunch: true
+      VpcId: !ImportValue sharedinf-vpcid
+  SubnetPrivateB: # Private Subnet for App Env in AZ - B (not used yet)
+    Type: "AWS::EC2::Subnet"
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ]
+      CidrBlock: !GetAtt AutoSubnetCustomResource.AppPrivateCIDRB
+      MapPublicIpOnLaunch: false
+      VpcId: !ImportValue sharedinf-vpcid
+  SubnetRouteTableAssociatePublicA: # Associates the subnet with a route table - passed via import
+    DependsOn: SubnetPublicA
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !ImportValue sharedinf-publicrt
+      SubnetId: !Ref SubnetPublicA
+  SubnetRouteTableAssociatePublicB: # Associates the subnet with a route table - passed via import
+    DependsOn: SubnetPublicB
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !ImportValue sharedinf-publicrt
+      SubnetId: !Ref SubnetPublicB # Associates the subnet with a route table - passed via import
+  SubnetRouteTableAssociatePrivateA: # Associates the subnet with a route table - passed via parameter
+    DependsOn: SubnetPrivateA
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !ImportValue sharedinf-privaterta
+      SubnetId: !Ref SubnetPrivateA # Associates the subnet with a route table - passed via parameter
+  SubnetRouteTableAssociatePrivateB: # Associates the subnet with a route table - passed via parameter
+    DependsOn: SubnetPrivateB
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties:
+      RouteTableId: !ImportValue sharedinf-privatertb
+      SubnetId: !Ref SubnetPrivateB # Associates the subnet with a route table - passed via parameter
+  ELB:
+    Type: "AWS::ElasticLoadBalancing::LoadBalancer"
+    Properties:
+      CrossZone: true
+      Listeners:
+        -
+          InstancePort: "80"
+          InstanceProtocol: HTTP
+          LoadBalancerPort: "80"
+          Protocol: HTTP
+      Subnets:
+        - !Ref SubnetPublicA
+        - !Ref SubnetPublicB
+      SecurityGroups:
+        - !Ref SG
+  SG:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: !Join ["", ["Stack ", !Ref "AWS::StackId", " Application V", !Ref APPVERSION, " - ", !Ref ENVIRONMENT]]
+      VpcId: !ImportValue sharedinf-vpcid
+      SecurityGroupIngress:
+        -
+          CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          ToPort: "80"
+          FromPort: "80"
+        -
+          CidrIp: 0.0.0.0/0
+          IpProtocol: tcp
+          ToPort: "22"
+          FromPort: "22"
+      SecurityGroupEgress:
+        -
+          CidrIp: 0.0.0.0/0
+          ToPort: "-1"
+          IpProtocol: "-1"
+Outputs:
+  Endpoint:
+    Description: Application Address
+    Value: !Join ["", ["http://", !GetAtt ELB.DNSName, "/app.php"]]
