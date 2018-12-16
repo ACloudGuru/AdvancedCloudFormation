@@ -15,14 +15,14 @@
     "EC2" : {
       "Type" : "AWS::EC2::Instance",
       "Properties" : {
-        "ImageId" : "ami-c481fad3",
+        "ImageId" : "ami-08589eca6dcc9b39c",
         "InstanceType" : "t2.micro"
       }
     },
     "S3" : {
       "Type" : "AWS::S3::Bucket",
       "Properties" : {
-        "BucketName" : "wp-xxxxxx"
+        "BucketName" : "wp-xyz92810292"
       }
     }
   }
