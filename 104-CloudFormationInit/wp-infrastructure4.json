@@ -6,22 +6,10 @@
 			"AllowedValues": [	"SMALL", "MEDIUM", "LARGE" ],
 			"Description": "Select Environment Size (S,M,L)"
 		},
-		"DatabaseName" : {
-			"Type" : "String",
-			"Default" : "wordpress"
-		},
-		"DatabaseUser" : {
-			"Type" : "String",
-			"Default" : "wordpress"
-		},
-		"DatabasePassword" : {
-			"Type" : "String",
-			"Default" : "w0rdpr355"
-		},
-		"TestString" : {
-			"Type" : "String",
-			"Default" : "test9"
-		}
+		"DatabaseName"     : { "Type" : "String", "Default" : "wordpress"	},
+		"DatabaseUser"     : { "Type" : "String", "Default" : "wordpress"	},
+		"DatabasePassword" : { "Type" : "String", "Default" : "w0rdpr355"	},
+		"TestString"       : { "Type" : "String", "Default" : "test9"     }
 	},
 
   	"Mappings": {
