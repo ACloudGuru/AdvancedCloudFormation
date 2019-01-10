@@ -21,3 +21,27 @@ venv
 node_modules
 .sass-cache
 #
+
+# zappa_settings.json
+# =======================
+*.*~
+*.pyc
+**/pyc
+**/*.pyc
+*.swp
+*.tmp
+*~
+*.pydevproject
+*.project
+*/*.xml
+workspace.xml
+*/workspace.xml
+**/workspace.xml
+
+.idea/
+.idea/*
+.idea/*.xml
+*/.idea/*
+**/.idea/*
+
+.idea/
