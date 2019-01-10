@@ -34,6 +34,7 @@ node_modules
 *.pydevproject
 *.project
 */*.xml
+**/*.xml
 workspace.xml
 */workspace.xml
 **/workspace.xml
