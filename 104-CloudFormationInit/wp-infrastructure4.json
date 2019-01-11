@@ -12,7 +12,7 @@
 		"TestString"       : { "Type" : "String", "Default" : "test9"     }
 	},
 
-  	"Mappings": {
+  "Mappings": {
 		"RegionMap": {
 			"us-east-1"     : { "AMALINUX": "ami-c481fad3" 	},
 			"us-east-2"     : { "AMALINUX": "ami-71ca9114"	},
