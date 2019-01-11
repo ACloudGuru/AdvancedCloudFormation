@@ -1,3 +1,6 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region'
 Resources:
   DB:
     Type: "AWS::RDS::DBInstance"
@@ -12,9 +15,9 @@ Resources:
   EC2:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-c481fad3 # Linux (1), N.Virginia - Sept 2016
+      ImageId: ami-0080e4c5bc078760e # Linux (1), N.Virginia - Sept 2016
       InstanceType: t2.micro
   S3:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: wp-jjoiqhdf9nu9eruin-yaml # replace xxxxxx with random
+      BucketName: wp-xxxxxxxxxxx # replace xxxxxxxxxxx with random

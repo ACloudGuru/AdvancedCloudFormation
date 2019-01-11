@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro",
+  "Description": "A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region",
   "Resources": {
     "DB": {
       "Type": "AWS::RDS::DBInstance",
@@ -22,7 +22,11 @@
       }
     },
     "S3": {
-      "Type": "AWS::S3::Bucket"
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "wp-xxxxxxxxxxx"
+      }
     }
   }
 }
+
