@@ -1,4 +1,6 @@
 {
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro",
   "Resources": {
     "DB": {
       "Type": "AWS::RDS::DBInstance",

@@ -1,4 +1,6 @@
 {
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro",
   "Resources": {
     "DB": {
       "Type": "AWS::RDS::DBInstance",
@@ -15,15 +17,12 @@
     "EC2": {
       "Type": "AWS::EC2::Instance",
       "Properties": {
-        "ImageId": "ami-c481fad3",
+        "ImageId": "ami-0080e4c5bc078760e",
         "InstanceType": "t2.micro"
       }
     },
     "S3": {
-      "Type": "AWS::S3::Bucket",
-      "Properties": {
-        "BucketName": "wp-jjoiqhdf9nu9eruin-json"
-      }
+      "Type": "AWS::S3::Bucket"
     }
   }
 }
