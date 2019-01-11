@@ -12,9 +12,9 @@ Resources:
   EC2:
     Type: AWS::EC2::Instance
     Properties:
-      ImageId: ami-c481fad3 # N.Virginia - Ama Sept'16
+      ImageId: ami-c481fad3 # Linux (1), N.Virginia - Sept 2016
       InstanceType: t2.micro
   S3:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: wp-xxxxxx # replace xxxxxx with random
+      BucketName: wp-jjoiqhdf9nu9eruin-yaml # replace xxxxxx with random
