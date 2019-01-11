@@ -3,91 +3,46 @@
 		"EnvironmentSize": {
 			"Type": "String",
 			"Default": "SMALL",
-			"AllowedValues": [
-				"SMALL",
-				"MEDIUM",
-				"LARGE"
-			],
+			"AllowedValues": [	"SMALL", "MEDIUM", "LARGE" ],
 			"Description": "Select Environment Size (S,M,L)"
 		},
-		"DatabaseName" : {
-			"Type" : "String",
-			"Default" : "wordpress"
-		},
-		"DatabaseUser" : {
-			"Type" : "String",
-			"Default" : "wordpress"
-		},
-		"DatabasePassword" : {
-			"Type" : "String",
-			"Default" : "w0rdpr355"
-		},
-		"TestString" : {
-			"Type" : "String",
-			"Default" : "test9"
-		}
+		"DatabaseName"     : { "Type" : "String", "Default" : "wordpress"	},
+		"DatabaseUser"     : { "Type" : "String", "Default" : "wordpress"	},
+		"DatabasePassword" : { "Type" : "String", "Default" : "w0rdpr355"	},
+		"TestString"       : { "Type" : "String", "Default" : "test9"     }
 	},
-	"Mappings": {
-		"RegionMap": {
-			"us-east-1": {
-				"AMALINUX": "ami-c481fad3"
-			},
-			"us-east-2": {
-				"AMALINUX": "ami-71ca9114"
-			},
-			"us-west-1": {
-				"AMALINUX": "ami-de347abe"
-			},
-			"us-west-2": {
-				"AMALINUX": "ami-b04e92d0"
-			},
-			"ca-central-1" : {
-				"AMALINUX" : "ami-eb20928f"
-			},
-			"eu-west-1": {
-				"AMALINUX": "ami-d41d58a7"
-			},
-			"eu-central-1": {
-				"AMALINUX": "ami-0044b96f"
-			},
-			"eu-west-2" : {
-				"AMALINUX" : "ami-bfe0eadb"
-			},
-			"ap-southeast-1": {
-				"AMALINUX": "ami-7243e611"
-			},
-			"ap-southeast-2": {
-				"AMALINUX": "ami-55d4e436"
-			},
-			"ap-northeast-2": {
-				"AMALINUX": "ami-a04297ce"
-			},
 
-			"ap-northeast-1": {
-				"AMALINUX": "ami-1a15c77b"
-			},
-			"ap-south-1": {
-				"AMALINUX": "ami-cacbbea5"
-			},
-			"sa-east-1": {
-				"AMALINUX": "ami-b777e4db"
-			}
+  	"Mappings": {
+		"RegionMap": {
+			"us-east-1"     : { "AMALINUX": "ami-c481fad3" 	},
+			"us-east-2"     : { "AMALINUX": "ami-71ca9114"	},
+
+			"us-west-1"     : { "AMALINUX": "ami-de347abe" 	},
+			"us-west-2"     : { "AMALINUX": "ami-b04e92d0" 	},
+
+      "sa-east-1"     : {	"AMALINUX": "ami-b777e4db"	},
+			"ca-central-1"  : { "AMALINUX": "ami-eb20928f"  },
+
+			"eu-west-1"     : { "AMALINUX": "ami-d41d58a7"  },
+			"eu-west-2"     : { "AMALINUX": "ami-bfe0eadb"	},
+      "eu-central-1"  : { "AMALINUX": "ami-0044b96f" 	},
+
+			"ap-southeast-1": {	"AMALINUX": "ami-7243e611" 	},
+			"ap-southeast-2": {	"AMALINUX": "ami-55d4e436"	},
+
+      "ap-northeast-1": {	"AMALINUX": "ami-1a15c77b"	},
+			"ap-northeast-2": {	"AMALINUX": "ami-a04297ce"	},
+
+      "ap-south-1"    : {	"AMALINUX": "ami-cacbbea5"	}
+
 		},
 		"InstanceSize": {
-			"SMALL": {
-				"EC2": "t2.micro",
-				"DB": "db.t2.micro"
-			},
-			"MEDIUM": {
-				"EC2": "t2.small",
-				"DB": "db.t2.small"
-			},
-			"LARGE": {
-				"EC2": "t2.medium",
-				"DB": "db.t2.medium"
-			}
+			"SMALL" : { "EC2": "t2.micro",  "DB": "db.t2.micro" },
+			"MEDIUM": { "EC2": "t2.small",  "DB": "db.t2.small" },
+			"LARGE" : {	"EC2": "t2.medium",	"DB": "db.t2.medium" }
 		}
 	},
+
 	"Resources": {
 		"DB": {
 			"Type": "AWS::RDS::DBInstance",
