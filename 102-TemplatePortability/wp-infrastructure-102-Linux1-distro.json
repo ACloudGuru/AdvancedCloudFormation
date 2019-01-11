@@ -12,11 +12,11 @@
 	},
 	"Mappings": {
 		"RegionMap": {
-			"us-east-1"     : { "AMALINUX": "ami-c481fad3" 	},
-			"us-east-2"     : { "AMALINUX": "ami-71ca9114"	},
+			"us-east-1"     : { "AMALINUX": "ami-09479453c5cde9639" },
+			"us-east-2"     : { "AMALINUX": "ami-023c8dbf8268fb3ca" },
 
-			"us-west-1"     : { "AMALINUX": "ami-de347abe" 	},
-			"us-west-2"     : { "AMALINUX": "ami-b04e92d0" 	},
+			"us-west-1"     : { "AMALINUX": "ami-06ff511fea5db2c99" },
+			"us-west-2"     : { "AMALINUX": "ami-0bb5806b2e825a199" },
 
       "sa-east-1"     : {	"AMALINUX": "ami-b777e4db"	},
 			"ca-central-1"  : { "AMALINUX": "ami-eb20928f"  },
