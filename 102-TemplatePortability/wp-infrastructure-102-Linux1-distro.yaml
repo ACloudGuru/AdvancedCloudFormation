@@ -13,35 +13,38 @@ Parameters:
 Mappings:
   RegionMap:
     us-east-1:
-      AMALINUX: ami-09479453c5cde9639
+      AMALINUX: ami-0080e4c5bc078760e
     us-east-2:
-      AMALINUX: ami-023c8dbf8268fb3ca
+      AMALINUX: ami-0cd3dfa4e37921605
     us-west-1:
-      AMALINUX: ami-06ff511fea5db2c99
+      AMALINUX: ami-0ec6517f6edbf8044
     us-west-2:
-      AMALINUX: ami-0bb5806b2e825a199
+      AMALINUX: ami-01e24be29428c15b2
     sa-east-1:
-      AMALINUX: ami-09b9eaea4f33f0200
+      AMALINUX: ami-05145e0b28ad8e0b2
     ca-central-1:
-      AMALINUX: ami-0bce70e886ac6890a
+      AMALINUX: ami-07423fb63ea0a0930
     eu-west-1:
-      AMALINUX: ami-031a3db8bacbcdc20
+      AMALINUX: ami-08935252a36e25f85
     eu-west-2:
-      AMALINUX: ami-0307e8ce88a8245d4
+      AMALINUX: ami-01419b804382064e4
+    eu-west-3:
+      AMALINUX: ami-0dd7e7ed60da8fb83
     eu-central-1:
-      AMALINUX: ami-07f1aa69c7c7b01c9
+      AMALINUX: ami-0cfbf4f6db41068ac
     ap-southeast-1:
-      AMALINUX: ami-07ad70c269d8a418c
+      AMALINUX: ami-05b3bcf7f311194b3
     ap-southeast-2:
-      AMALINUX: ami-0aff30363d302d23a
+      AMALINUX: ami-02fd0b06f06d93dfc
     ap-northeast-1:
-      AMALINUX: ami-063fa8762cdc9a5a6
+      AMALINUX: ami-00a5245b4816c38e6
     ap-northeast-2:
-      AMALINUX: ami-0076ae0908f382581
+      AMALINUX: ami-00dc207f8ba6dc919
     ap-south-1:
-      AMALINUX: ami-0bc6e84391ec20816
+      AMALINUX: ami-0ad42f4f66f6c1cc9
     cn-north-1:
       AMALINUX: ami-8e6aa0e3
+
   InstanceSize:
     SMALL:
       "EC2" : "t2.micro"
