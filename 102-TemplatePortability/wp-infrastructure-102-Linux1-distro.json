@@ -18,20 +18,22 @@
 			"us-west-1"     : { "AMALINUX": "ami-06ff511fea5db2c99" },
 			"us-west-2"     : { "AMALINUX": "ami-0bb5806b2e825a199" },
 
-      "sa-east-1"     : {	"AMALINUX": "ami-b777e4db"	},
-			"ca-central-1"  : { "AMALINUX": "ami-eb20928f"  },
+      "sa-east-1"     : {	"AMALINUX": "ami-09b9eaea4f33f0200"	},
+			"ca-central-1"  : { "AMALINUX": "ami-0bce70e886ac6890a"  },
 
-			"eu-west-1"     : { "AMALINUX": "ami-d41d58a7"  },
-			"eu-west-2"     : { "AMALINUX": "ami-bfe0eadb"	},
-      "eu-central-1"  : { "AMALINUX": "ami-0044b96f" 	},
+			"eu-west-1"     : { "AMALINUX": "ami-031a3db8bacbcdc20"  },
+			"eu-west-2"     : { "AMALINUX": "ami-0307e8ce88a8245d4"	},
+      "eu-central-1"  : { "AMALINUX": "ami-07f1aa69c7c7b01c9" 	},
 
-			"ap-southeast-1": {	"AMALINUX": "ami-7243e611" 	},
-			"ap-southeast-2": {	"AMALINUX": "ami-55d4e436"	},
+			"ap-southeast-1": {	"AMALINUX": "ami-07ad70c269d8a418c" 	},
+			"ap-southeast-2": {	"AMALINUX": "ami-0aff30363d302d23a"	},
 
-      "ap-northeast-1": {	"AMALINUX": "ami-1a15c77b"	},
-			"ap-northeast-2": {	"AMALINUX": "ami-a04297ce"	},
+      "ap-northeast-1": {	"AMALINUX": "ami-063fa8762cdc9a5a6"	},
+			"ap-northeast-2": {	"AMALINUX": "ami-0076ae0908f382581"	},
 
-      "ap-south-1"    : {	"AMALINUX": "ami-cacbbea5"	}
+      "ap-south-1"    : {	"AMALINUX": "ami-0bc6e84391ec20816"	},
+
+      "cn-north-1"    : {	"AMALINUX": "ami-8e6aa0e3"        	}
 
 		},
 		"InstanceSize": {
