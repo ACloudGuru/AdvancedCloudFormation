@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region",
+  "Description": "A template with a Mapping to allow it to be run in a number of regions.  Must use Linux (1) distro. Feel free to update the AMIs if there is a newere Linux (1) version",
 
 	"Parameters": {
 		"EnvironmentSize": {

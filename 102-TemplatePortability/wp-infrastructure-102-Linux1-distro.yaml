@@ -1,6 +1,6 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'A simple template intended to be run in N.Virginia (us-east-1) with a Linux (1) distro. Feel free to change the ami so that you can run this in a different Region'
+Description: 'A template with a Mapping to allow it to be run in a number of regions.  Must use Linux (1) distro. Feel free to update the AMIs if there is a newere Linux (1) version'
 Parameters:
   EnvironmentSize:
     Type: String
@@ -12,34 +12,20 @@ Parameters:
     Description: Select Environment Size (S,M,L)
 Mappings:
   RegionMap:
-    us-east-1:
-      "AMALINUX" : "ami-c481fad3" # AMALINUX SEP 2016 
-    us-east-2:
-      "AMALINUX" : "ami-71ca9114" # AMALINUX SEP 2016
-    us-west-1:
-      "AMALINUX" : "ami-de347abe" # AMALINUX SEP 2016
-    us-west-2:
-      "AMALINUX" : "ami-b04e92d0" # AMALINUX SEP 2016
-    ca-central-1:
-      "AMALINUX" : "ami-eb20928f" # AMALINUX SEP 2016 v01
-    eu-west-1:
-      "AMALINUX" : "ami-d41d58a7" # AMALINUX SEP 2016
-    eu-central-1:
-      "AMALINUX" : "ami-0044b96f" # AMALINUX SEP 2016
-    eu-west-2:
-      "AMALINUX" : "ami-bfe0eadb" # AMALINUX SEP 2016 v01
-    ap-southeast-1:
-      "AMALINUX" : "ami-7243e611" # AMALINUX SEP 2016
-    ap-southeast-2:
-      "AMALINUX" : "ami-55d4e436" # AMALINUX SEP 2016
-    ap-northeast-2:
-      "AMALINUX" : "ami-a04297ce" # AMALINUX SEP 2016
-    ap-northeast-1:
-      "AMALINUX" : "ami-1a15c77b" # AMALINUX SEP 2016
-    ap-south-1:
-      "AMALINUX" : "ami-cacbbea5" # AMALINUX SEP 2016
-    sa-east-1:
-      "AMALINUX" : "ami-b777e4db" # AMALINUX SEP 2016
+    us-east-1     : AMALINUX: ami-09479453c5cde9639
+    us-east-2     : AMALINUX: ami-023c8dbf8268fb3ca
+    us-west-1     : AMALINUX: ami-06ff511fea5db2c99
+    us-west-2     : AMALINUX: ami-0bb5806b2e825a199
+    sa-east-1     : AMALINUX: ami-09b9eaea4f33f0200
+    ca-central-1  : AMALINUX: ami-0bce70e886ac6890a
+    eu-west-1     : AMALINUX: ami-031a3db8bacbcdc20
+    eu-west-2     : AMALINUX: ami-0307e8ce88a8245d4
+    eu-central-1  : AMALINUX: ami-07f1aa69c7c7b01c9
+    ap-southeast-1: A AMALINUX: ami-0aff30363d302d23a
+    ap-northeast-1: AMALINUX: ami-063fa8762cdc9a5a6
+    ap-northeast-2: AMALINUX: ami-0076ae0908f382581
+    ap-south-1    : AMALINUX: ami-0bc6e84391ec20816
+    cn-north-1    : AMALINUX: ami-8e6aa0e3
   InstanceSize:
     SMALL:
       "EC2" : "t2.micro"
