@@ -28,10 +28,8 @@
 
 			"ap-southeast-1": {	"AMALINUX": "ami-05b3bcf7f311194b3" },
 			"ap-southeast-2": {	"AMALINUX": "ami-02fd0b06f06d93dfc"	},
-
       "ap-northeast-1": {	"AMALINUX": "ami-00a5245b4816c38e6"	},
 			"ap-northeast-2": {	"AMALINUX": "ami-00dc207f8ba6dc919"	},
-
       "ap-south-1"    : {	"AMALINUX": "ami-0ad42f4f66f6c1cc9"	},
 
       "cn-north-1"    : {	"AMALINUX": "ami-8e6aa0e3"        	}
