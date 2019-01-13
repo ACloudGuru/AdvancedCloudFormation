@@ -1,6 +1,7 @@
 # A Cloud Guru - Advanced Cloud Formation
 
 Prepared by Adrian Cantrill 2016
+updates 2019 - revised AMIs and tweaks
 (c) A Cloud Guru 2016
 
 Lab files for A Cloud Guru - Advanced CloudFormation Course
