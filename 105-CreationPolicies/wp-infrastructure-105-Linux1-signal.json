@@ -49,18 +49,9 @@
 		},
 
 		"InstanceSize": {
-			"SMALL": {
-				"EC2": "t2.micro",
-				"DB": "db.t2.micro"
-			},
-			"MEDIUM": {
-				"EC2": "t2.small",
-				"DB": "db.t2.small"
-			},
-			"LARGE": {
-				"EC2": "t2.medium",
-				"DB": "db.t2.medium"
-			}
+			"SMALL" : { "EC2": "t2.micro",  "DB": "db.t2.micro" },
+			"MEDIUM": { "EC2": "t2.small",  "DB": "db.t2.small" },
+			"LARGE" : {	"EC2": "t2.medium",	"DB": "db.t2.medium" }
 		}
 	},
 	"Resources": {
