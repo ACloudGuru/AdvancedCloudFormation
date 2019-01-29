@@ -44,14 +44,14 @@ Parameters:
     ConstraintDescription: Must be a valid CIDR range in the form x.x.x.x/22
   APPPrivateCIDRA:
     Type: String
-    Description: CIDR to use for public subnet A for app environment.
+    Description: CIDR to use for private subnet A for app environment.
     MinLength: 9
     MaxLength: 18
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
     ConstraintDescription: Must be a valid CIDR range in the form x.x.x.x/22
   APPPrivateCIDRB:
     Type: String
-    Description: CIDR to use for public subnet B for app environment.
+    Description: CIDR to use for private subnet B for app environment.
     MinLength: 9
     MaxLength: 18
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
