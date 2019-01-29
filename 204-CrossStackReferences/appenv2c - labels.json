@@ -138,6 +138,7 @@
           "PRESALES" : { "EC2" : "t2.micro" }
       }
     },
+
     "Resources" : {
         "SubnetPublicA" : {
             "Type" : "AWS::EC2::Subnet",
