@@ -17,9 +17,6 @@ Parameters:
     Type: String
     Default: w0rdpr355
     NoEcho: true
-  TestString:
-    Type: String
-    Default: test9
 Mappings:
   RegionMap:
     us-east-1:
@@ -65,7 +62,6 @@ Mappings:
     LARGE:
       "EC2" : "t2.medium"
       "DB" : "db.t2.medium"
-
 Resources:
   DB:
     Type: "AWS::RDS::DBInstance"
@@ -90,6 +86,11 @@ Resources:
             yum update -y aws-cfn-bootstrap # good practice - always do this.
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets wordpress --region ${AWS::Region}
             yum -y update
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: "1"
+        Timeout: PT15M
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -119,7 +120,7 @@ Resources:
               owner: root
               group: root
             /var/www/html/index2.html:
-              content: !Ref TestString
+              content: "test9"
           services:
             sysvinit:
               cfn-hup:

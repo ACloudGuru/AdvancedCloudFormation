@@ -1,4 +1,8 @@
 Parameters:
+  SnapToRestore:
+    Type: String
+    Default: ""
+    Description: snap id to restore
   EnvironmentSize:
     Type: String
     Default: SMALL
@@ -17,9 +21,13 @@ Parameters:
     Type: String
     Default: w0rdpr355
     NoEcho: true
-  TestString:
-    Type: String
-    Default: test9
+Conditions:
+  isLarge:
+    !Equals [!Ref EnvironmentSize, "LARGE"]
+  isntLarge:
+    !Not [!Equals [!Ref EnvironmentSize, "LARGE"]]
+  isRestore:
+    !Not [!Equals [!Ref SnapToRestore, ""]]
 Mappings:
   RegionMap:
     us-east-1:
@@ -65,20 +73,22 @@ Mappings:
     LARGE:
       "EC2" : "t2.medium"
       "DB" : "db.t2.medium"
-
 Resources:
   DB:
     Type: "AWS::RDS::DBInstance"
+    DeletionPolicy: Snapshot
     Properties:
       AllocatedStorage: 5
       StorageType: gp2
       DBInstanceClass: !FindInMap [InstanceSize, !Ref EnvironmentSize, DB] # Dynamic mapping + Pseudo Parameter
-      DBName: !Ref DatabaseName
+      DBName: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseName]
       Engine: MySQL
-      MasterUsername: !Ref DatabaseUser
-      MasterUserPassword: !Ref DatabasePassword
+      MasterUsername: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabaseUser]
+      MasterUserPassword: !If [isRestore, !Ref "AWS::NoValue", !Ref DatabasePassword]
+      DBSnapshotIdentifier: !Ref SnapToRestore
   EC2:
     Type: "AWS::EC2::Instance"
+    DeletionPolicy: Delete
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] # Dynamic mapping + Pseudo Parameter
       InstanceType: !FindInMap [InstanceSize, !Ref EnvironmentSize, EC2]
@@ -90,6 +100,11 @@ Resources:
             yum update -y aws-cfn-bootstrap # good practice - always do this.
             /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2 --configsets wordpress --region ${AWS::Region}
             yum -y update
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2 --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: "1"
+        Timeout: PT15M
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -119,7 +134,7 @@ Resources:
               owner: root
               group: root
             /var/www/html/index2.html:
-              content: !Ref TestString
+              content: "test9"
           services:
             sysvinit:
               cfn-hup:
@@ -166,3 +181,4 @@ Resources:
                 sed -i 's/password_here/${DatabasePassword}/g' wp-config.php
   S3:
     Type: "AWS::S3::Bucket"
+    DeletionPolicy: Retain

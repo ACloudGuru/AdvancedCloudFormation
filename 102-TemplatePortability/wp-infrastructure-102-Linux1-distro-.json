@@ -42,6 +42,7 @@
 			"LARGE" : {	"EC2": "t2.medium",	"DB": "db.t2.medium" }
 		}
 	},
+
 	"Resources": {
 		"DB": {
 			"Type": "AWS::RDS::DBInstance",
