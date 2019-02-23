@@ -82,7 +82,7 @@
 			"Condition" : "isntLarge",
 			"DeletionPolicy" : "Snapshot",
 			"Properties": {
-				"AllocatedStorage": 5,
+				"AllocatedStorage": "5",
 				"StorageType" : "gp2",
 				"DBInstanceClass": {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "DB"]},
 				"DBName": {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabaseName"}]},

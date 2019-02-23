@@ -60,7 +60,7 @@
 			"Type": "AWS::RDS::DBInstance",
 			"DeletionPolicy" : "Delete",
 			"Properties": {
-				"AllocatedStorage": 5,
+				"AllocatedStorage": "5",
 				"StorageType" : "gp2",
 				"DBInstanceClass": {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "DB"]},
 				"DBName": {"Ref" : "DatabaseName"},
