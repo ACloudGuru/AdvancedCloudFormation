@@ -62,7 +62,7 @@
 			"Properties": {
 				"ImageId": {"Fn::FindInMap" : ["RegionMap", {"Ref" : "AWS::Region"}, "AMALINUX"]},
 				"InstanceType": {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "EC2"]},
-				"KeyName" : "AdvancedCFN",
+				"KeyName" : "id_kyrtopn",
 				"UserData" : {"Fn::Base64" : {"Fn::Join" : ["", [
 						"#!/bin/bash", "\n",
 						"yum update -y aws-cfn-bootstrap", "\n",

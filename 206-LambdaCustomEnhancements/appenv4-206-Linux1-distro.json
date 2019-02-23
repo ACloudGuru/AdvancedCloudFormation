@@ -154,7 +154,7 @@
             "Properties" : {
                 "ImageId" : {"Fn::FindInMap" : ["RegionMap", {"Ref": "AWS::Region"}, "AMALINUX"]},
                 "InstanceType" : {"Fn::FindInMap" : ["InstanceSize", {"Ref":"ENVIRONMENT"} , "EC2"]},
-                "KeyName" : "AdvancedCFN",
+                "KeyName" : "id_kyrtopn",
                 "SecurityGroups" : [
                     {"Ref":"SG"}
                 ],

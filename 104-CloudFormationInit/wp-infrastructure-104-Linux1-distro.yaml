@@ -82,7 +82,7 @@ Resources:
     Properties:
       ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", AMALINUX] # Dynamic mapping + Pseudo Parameter
       InstanceType: !FindInMap [InstanceSize, !Ref EnvironmentSize, EC2]
-      KeyName: AdvancedCFN
+      KeyName: id_kyrtopn
       UserData:
         "Fn::Base64":
           !Sub |
