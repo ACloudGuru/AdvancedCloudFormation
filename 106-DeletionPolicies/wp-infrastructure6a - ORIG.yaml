@@ -20,38 +20,33 @@ Parameters:
 Mappings:
   RegionMap:
     us-east-1:
-      AMALINUX: ami-0080e4c5bc078760e
+      "AMALINUX" : "ami-c481fad3" # AMALINUX SEP 2016
     us-east-2:
-      AMALINUX: ami-0cd3dfa4e37921605
+      "AMALINUX" : "ami-71ca9114" # AMALINUX SEP 2016
     us-west-1:
-      AMALINUX: ami-0ec6517f6edbf8044
+      "AMALINUX" : "ami-de347abe" # AMALINUX SEP 2016
     us-west-2:
-      AMALINUX: ami-01e24be29428c15b2
-    sa-east-1:
-      AMALINUX: ami-05145e0b28ad8e0b2
+      "AMALINUX" : "ami-b04e92d0" # AMALINUX SEP 2016
     ca-central-1:
-      AMALINUX: ami-07423fb63ea0a0930
+      "AMALINUX" : "ami-eb20928f" # AMALINUX SEP 2016 v01
     eu-west-1:
-      AMALINUX: ami-08935252a36e25f85
-    eu-west-2:
-      AMALINUX: ami-01419b804382064e4
-    eu-west-3:
-      AMALINUX: ami-0dd7e7ed60da8fb83
+      "AMALINUX" : "ami-d41d58a7" # AMALINUX SEP 2016
     eu-central-1:
-      AMALINUX: ami-0cfbf4f6db41068ac
+      "AMALINUX" : "ami-0044b96f" # AMALINUX SEP 2016
+    eu-west-2:
+      "AMALINUX" : "ami-bfe0eadb" # AMALINUX SEP 2016 v01
     ap-southeast-1:
-      AMALINUX: ami-05b3bcf7f311194b3
+      "AMALINUX" : "ami-7243e611" # AMALINUX SEP 2016
     ap-southeast-2:
-      AMALINUX: ami-02fd0b06f06d93dfc
-    ap-northeast-1:
-      AMALINUX: ami-00a5245b4816c38e6
+      "AMALINUX" : "ami-55d4e436" # AMALINUX SEP 2016
     ap-northeast-2:
-      AMALINUX: ami-00dc207f8ba6dc919
+      "AMALINUX" : "ami-a04297ce" # AMALINUX SEP 2016
+    ap-northeast-1:
+      "AMALINUX" : "ami-1a15c77b" # AMALINUX SEP 2016
     ap-south-1:
-      AMALINUX: ami-0ad42f4f66f6c1cc9
-    cn-north-1:
-      AMALINUX: ami-8e6aa0e3
-
+      "AMALINUX" : "ami-cacbbea5" # AMALINUX SEP 2016
+    sa-east-1:
+      "AMALINUX" : "ami-b777e4db" # AMALINUX SEP 2016
   InstanceSize:
     SMALL:
       "EC2" : "t2.micro"
@@ -132,10 +127,10 @@ Resources:
         install_wordpress:
           packages:
             yum:
-              httpd: []
-              php: []
-              mysql: []
-              php-mysql: []
+              httpd24: []
+              php73: []
+              mysql56: []
+              php73-mysqlnd: []
           sources:
             /var/www/html: "http://wordpress.org/latest.tar.gz"
           services:

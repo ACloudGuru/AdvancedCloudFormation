@@ -1,5 +1,10 @@
 {
 	"Parameters": {
+		"SnapToRestore" : {
+			"Type" : "String",
+			"Default" : "",
+			"Description" : "snap id to restore"
+		},
 		"EnvironmentSize": {
 			"Type": "String",
 			"Default": "SMALL",
@@ -21,11 +26,12 @@
 		"DatabasePassword" : {
 			"Type" : "String",
 			"Default" : "w0rdpr355"
-		},
-		"TestString" : {
-			"Type" : "String",
-			"Default" : "test9"
 		}
+	},
+	"Conditions" : {
+		"isLarge" : {"Fn::Equals" : [{"Ref" : "EnvironmentSize"}, "LARGE"]},
+		"isntLarge" : {"Fn::Not" : [{"Fn::Equals" : [{"Ref" : "EnvironmentSize"}, "LARGE"]}]},
+		"isRestore" : {"Fn::Not" : [{"Fn::Equals" : [{"Ref" : "SnapToRestore"}, ""]}]}
 	},
 	"Mappings": {
 		"RegionMap": {
@@ -62,7 +68,6 @@
 			"ap-northeast-2": {
 				"AMALINUX": "ami-a04297ce"
 			},
-
 			"ap-northeast-1": {
 				"AMALINUX": "ami-1a15c77b"
 			},
@@ -84,41 +89,74 @@
 			},
 			"LARGE": {
 				"EC2": "t2.medium",
-				"DB": "db.t2.medium"
+				"DB": "db.r3.xlarge"
 			}
 		}
 	},
 	"Resources": {
 		"DB": {
 			"Type": "AWS::RDS::DBInstance",
+			"Condition" : "isntLarge",
+			"DeletionPolicy" : "Snapshot",
 			"Properties": {
 				"AllocatedStorage": 5,
 				"StorageType" : "gp2",
 				"DBInstanceClass": {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "DB"]},
-				"DBName": {"Ref" : "DatabaseName"},
+				"DBName": {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabaseName"}]},
 				"Engine": "MySQL",
-				"MasterUsername": {"Ref" : "DatabaseUser"},
-				"MasterUserPassword": {"Ref" : "DatabasePassword"}
+				"MasterUsername": {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabaseUser"}]},
+				"MasterUserPassword": {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabasePassword"}]},
+				"DBSnapshotIdentifier" : {"Fn::If" : ["isRestore", {"Ref" : "SnapToRestore"}, {"Ref" : "AWS::NoValue"}]}
+			}
+		},
+		"DBAuroraCluster" : {
+			"Type" : "AWS::RDS::DBCluster",
+			"DeletionPolicy" : "Snapshot",
+			"Condition" : "isLarge",
+			"Properties" : {
+				"DatabaseName" : {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabaseName"}]},
+				"Engine" : "aurora",
+				"MasterUsername" : {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabaseUser"}]},
+				"MasterUserPassword" : {"Fn::If" : ["isRestore", {"Ref" : "AWS::NoValue"}, {"Ref" : "DatabasePassword"}]},
+				"SnapshotIdentifier" : {"Fn::If" : ["isRestore", {"Ref" : "SnapToRestore"}, {"Ref" : "AWS::NoValue"}]}
+			}
+		},
+		"DBAurora" : {
+			"Type" : "AWS::RDS::DBInstance",
+			"Condition" : "isLarge",
+			"Properties" : {
+				"DBClusterIdentifier" : {"Ref" : "DBAuroraCluster"},
+				"Engine" : "aurora",
+				"DBInstanceClass" : {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "DB"]}
 			}
 		},
 		"EC2": {
 			"Type": "AWS::EC2::Instance",
+			"DeletionPolicy" : "Delete",
 			"Properties": {
 				"ImageId": {"Fn::FindInMap" : ["RegionMap", {"Ref" : "AWS::Region"}, "AMALINUX"]},
 				"InstanceType": {"Fn::FindInMap" : ["InstanceSize", {"Ref" : "EnvironmentSize"}, "EC2"]},
 				"KeyName" : "AdvancedCFN",
 				"UserData" : {"Fn::Base64" : {"Fn::Join" : ["", [
 						"#!/bin/bash", "\n",
-						"yum remove httpd-tools", "\n",
-						"yum remove httpd", "\n",
 						"yum update -y aws-cfn-bootstrap", "\n",
 						"/opt/aws/bin/cfn-init -v",
 						" --stack ", {"Ref" : "AWS::StackName"},
 						" --resource EC2",
 						" --configsets wordpress",
 						" --region ", {"Ref" : "AWS::Region"}, "\n",
-						"yum update -y", "\n"
+						"yum update -y", "\n",
+						"/opt/aws/bin/cfn-signal -e $?",
+						" --stack ", {"Ref" : "AWS::StackName"},
+						" --resource EC2",
+						" --region ", {"Ref" : "AWS::Region"}, "\n"
 				]]}}
+			},
+			"CreationPolicy" : {
+				"ResourceSignal" : {
+					"Count" : "1",
+					"Timeout" : "PT15M"
+				}
 			},
 			"Metadata" : {
 				"AWS::CloudFormation::Init" : {
@@ -155,7 +193,7 @@
 								"group" : "root"								
 							},
 							"/var/www/html/index2.html" : {
-								"content" : {"Ref" : "TestString"}
+								"content" : "test9"
 							}
 						},
 						"services" : {
@@ -198,11 +236,19 @@
 							},
 							"02_inject_dbhost" : {
 								"cwd" : "/var/www/html/wordpress",
-								"command" : {"Fn::Join" : ["", [
-									"sed -i 's/localhost/",
-									{"Fn::GetAtt" : ["DB", "Endpoint.Address"]},
-									"/g' wp-config.php"
-								]]}
+								"command" : {"Fn::If" : [
+									"isntLarge",
+									{"Fn::Join" : ["", [
+										"sed -i 's/localhost/",
+										{"Fn::GetAtt" : ["DB", "Endpoint.Address"]},
+										"/g' wp-config.php"
+									]]},
+									{"Fn::Join" : ["", [
+										"sed -i 's/localhost/",
+										{"Fn::GetAtt" : ["DBAuroraCluster", "Endpoint.Address"]},
+										"/g' wp-config.php"
+									]]}									
+								]}
 							},
 							"03_inject_dbname" : {
 								"cwd" : "/var/www/html/wordpress",
@@ -227,14 +273,45 @@
 									{"Ref" : "DatabasePassword"},
 									"/g' wp-config.php"
 								]]}
-							}																							
+							},
+							"06_store_instance_ip" : {
+								"cwd" : "/var/www/html/wordpress",
+								"command" : "curl http://169.254.169.254/latest/meta-data/public-ipv4 > ip.address"
+							},
+							"07a_inject_IP_1" : {
+								"cwd" : "/var/www/html/wordpress",
+								"command" : "myip=`cat ip.address` && echo \"define('WP_SITEURL', 'http://${myip}/wordpress');\" >> wp-config.php"
+							},
+							"07b_inject_IP_1" : {
+								"cwd" : "/var/www/html/wordpress",
+								"command" : "myip=`cat ip.address` && echo \"define('WP_HOME', 'http://${myip}/wordpress');\" >> wp-config.php"
+							},
+							"08a_inject_IP_1" : {
+								"cwd" : "/var/www/html/wordpress",
+								"command" : "myip=`cat ip.address` && echo \"update_option('siteurl','http://${myip}/wordpress');\" >> /var/www/html/wordpress/wp-content/themes/twentyseventeen/functions.php"
+							},	
+							"08b_inject_IP_1" : {
+								"cwd" : "/var/www/html/wordpress",
+								"command" : "myip=`cat ip.address` && echo \"update_option('home','http://${myip}/wordpress');\" >> /var/www/html/wordpress/wp-content/themes/twentyseventeen/functions.php"
+							}																														
 						}
 					}
 				}
 			}
 		},
 		"S3": {
-			"Type": "AWS::S3::Bucket"
+			"Type": "AWS::S3::Bucket",
+			"DeletionPolicy" : "Retain"
+		}
+	},
+	"Outputs" : {
+		"wproot" : {
+			"Description" : "Access URL for wordpress",
+			"Value" : {"Fn::Join" : ["",["http://", {"Fn::GetAtt" : ["EC2", "PublicIp"]}, "/wordpress"]]}
+		},
+		"wpadmin" : {
+			"Description" : "Admin Login URL - if restoring from snap, ALWAYS use this URL first",
+			"Value" : {"Fn::Join" : ["",["http://", {"Fn::GetAtt" : ["EC2", "PublicIp"]}, "/wordpress/wp-login.php"]]}			
 		}
 	}
 }
